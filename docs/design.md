@@ -8,6 +8,7 @@ Minimum targets include:
 - Factoids. This implementation should include the management of factoids (creation, editing, documenting, and deleting). It should not be bound to a single prefix.
 - User moderation. This implementation should include per-channel message logging, as well as an easy framework to moderate users (kick, ban, time out)
 - Support for unit tests
+- Simple deployment. Deployment should require minimal configuration. a Makefile should be used to simplify processes.
 
 Non-critical high priority targets:
 - Google CSE (image search, text search, youtube, pagination)
