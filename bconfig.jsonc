@@ -1,0 +1,29 @@
+{
+    "logging": {
+        /**
+         * Different levels of verbose logging.
+         *
+         * 0: No logging, no events will be logged
+         *
+         * 1: Very minimalist logging, including core and module starting, as well as module failure.
+         *
+         * 2: Slightly more verbose logging, may log some important info events
+         *
+         * 3: Will log commands used and all info passed through eventLogger
+         *
+         * 4:
+         */
+        "stdout": {
+            "verboseLevel": 2
+        },
+        // It is an option to have the bot DM certain users for events, it's suggested to leave this disabled or on a very low level.
+        "directMessageLogging": {
+            "userIds": [],
+            "verboseLevel": 0
+        },
+        "loggingChannel": {
+            "loggingChannelId": "",
+            "verboseLevel": 2
+        }
+    }
+}
