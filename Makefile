@@ -10,9 +10,6 @@ fstart:
 	npx ts-node --transpileOnly ./core/main.ts
 # Install and update all dependancies
 prep:
-	ifeq (, $(shell which node))
-	$(error "Node does not appear to be installed or accessible via path, please install node.")
-	endif
 	npm i
 
 # Format whole project

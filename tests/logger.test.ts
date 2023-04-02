@@ -1,16 +1,21 @@
 import { describe, it } from "node:test";
 import chalk from "chalk";
 
-import { EventLogger } from "../core/logger";
+import { logEvent } from "../core/logger";
+import { botConfig } from "../core/config";
 
-console.log("from tests: " + typeof EventLogger)
-let eventLogger = new EventLogger();
+// This should probably be removed later, I'd like to make tests run when
+// the bot is connected to discord and started so that tests don't need
+// to emulate a whole api
+botConfig.readConfigFromFileSystem();
+
 describe("testing logging", () => {
     it("should support color", () => {
         if (!chalk.supportsColor) throw "This terminal does not support color";
     });
+
     it("should log an information event", () => {
-        eventLogger.logEvent(
+        logEvent(
             {
                 location: "testing",
                 description: "logging an information event",
@@ -21,7 +26,7 @@ describe("testing logging", () => {
     });
 
     it("should log a warning event", () => {
-        eventLogger.logEvent(
+        logEvent(
             {
                 location: "testing",
                 description: "logging a warning event",
@@ -32,7 +37,7 @@ describe("testing logging", () => {
     });
 
     it("should log an error event", () => {
-        eventLogger.logEvent(
+        logEvent(
             {
                 location: "testing",
                 description: "logging an error event",

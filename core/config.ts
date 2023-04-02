@@ -4,39 +4,23 @@
 import { readFileSync } from "node:fs";
 import { parse as parseJSONC } from "jsonc-parser";
 
-import { EventLogger } from "./logger";
-
-
-console.log(typeof EventLogger);
-let eventLogger = new EventLogger();
-/**
- * This mirrors `config.jsonc`
- */
-export class Config {
-    // Loading the config
-    constructor() {
+import { logEvent } from "./logger";
+//export class Config {
+// Loading the config
+//    constructor() {
+export let botConfig: any = {
+    readConfigFromFileSystem() {
         // read the config from the filesystem
         // TODO: only do this if the config hasn't been set already
         try {
             Object.assign(
-                Config.prototype,
-                parseJSONC(readFileSync("./config.jsonc", "utf-8")));
-        } catch (err) {
-            eventLogger.logEvent(
-                {
-                    location: "config",
-                    description:
-                        "Unable to parse config.jsonc, make sure it exists and is valid.",
-                    category: "EE",
-                },
-                1
+                botConfig,
+                parseJSONC(readFileSync("./config.jsonc", "utf-8"))
             );
-            throw err;
+        } catch (err) {
+            throw new Error("Unable to locate or process config.jsonc");
         }
-    }
-}
+    },
 
-/**
- * This mirrors `config.jsonc`.
- */
-export let config = new Config();
+    // console.log("\n\nConfig.prototype" + JSON.stringify(Config.prototype))
+};

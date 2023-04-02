@@ -1,1 +1,4 @@
-console.log("Hello World");
+import { botConfig } from "./config";
+
+botConfig.readConfigFromFileSystem();
+console.log(botConfig);
