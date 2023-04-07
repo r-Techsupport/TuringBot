@@ -4,10 +4,12 @@
 import { readFileSync } from "node:fs";
 import { parse as parseJSONC } from "jsonc-parser";
 
-import { logEvent } from "./logger";
-//export class Config {
-// Loading the config
-//    constructor() {
+import { logUtil } from "./logger";
+
+/**
+ * This is an object mirror of `config.jsonc`. You can load the config from the filesystem with `readConfigFromFileSystem()`.
+ */
+// The any type is needed because the json is written to this object at runtime
 export let botConfig: any = {
     readConfigFromFileSystem() {
         // read the config from the filesystem
@@ -21,6 +23,4 @@ export let botConfig: any = {
             throw new Error("Unable to locate or process config.jsonc");
         }
     },
-
-    // console.log("\n\nConfig.prototype" + JSON.stringify(Config.prototype))
 };
