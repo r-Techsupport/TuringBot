@@ -1,14 +1,12 @@
+import "fs";
 import { Client, Events, GatewayIntentBits } from "discord.js";
 
 import { botConfig } from "./config";
 import { eventLogger } from "./logger";
 
 botConfig.readConfigFromFileSystem();
-eventLogger.logEvent(
-    { category: "II", location: "core", description: "Loaded config" },
-    2
-);
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+eventLogger.logEvent({ category: "II", location: "core", description: "Loaded config" }, 2);
+export const client: any = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 // When the bot initializes a connection with the discord API
 client.once(Events.ClientReady, (clientEvent) => {

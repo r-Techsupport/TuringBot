@@ -5,6 +5,7 @@
         "test": "tests"
     },
     "prettier": {
+        "printWidth": 120,
         "trailingComma": "es5",
         "tabWidth": 4,
         "semi": true,

@@ -15,10 +15,7 @@ export let botConfig: any = {
         // read the config from the filesystem
         // TODO: only do this if the config hasn't been set already
         try {
-            Object.assign(
-                botConfig,
-                parseJSONC(readFileSync("./config.jsonc", "utf-8"))
-            );
+            Object.assign(botConfig, parseJSONC(readFileSync("./config.jsonc", "utf-8")));
         } catch (err) {
             throw new Error("Unable to locate or process config.jsonc");
         }

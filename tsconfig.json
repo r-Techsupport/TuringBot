@@ -3,9 +3,10 @@
         "esModuleInterop": true,
         "module": "CommonJS",
         "outDir": "build",
-        "sourceMap": true
+        "sourceMap": true,
     },
     "ts-node": {
-        "files": true
+        "files": true,
+        "swc": true
     }
 }

@@ -30,6 +30,9 @@ export interface DiscordEmbed {
     image?: {
         url: string;
     };
+    /**
+     * Time to display as an ISO 8601 string. `new Date().toISOString()`
+     */
     timestamp?: string;
     footer?: {
         text?: string;
@@ -54,10 +57,7 @@ export const quickEmbed = {
      * @param otherOptions Any other options, specified in an object
      * @returns DiscordEmbed
      */
-    simpleEmbed(
-        displayText: string,
-        otherOptions: DiscordEmbed = {}
-    ): DiscordEmbed {
+    simpleEmbed(displayText: string, otherOptions: DiscordEmbed = {}): DiscordEmbed {
         otherOptions.description = displayText;
         return otherOptions;
     },
