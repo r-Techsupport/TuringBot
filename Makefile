@@ -1,4 +1,6 @@
-
+# Install NPM packages
+prep:
+	npm i
 
 # Start the bot with typechecking, but outside of docker
 start:
@@ -14,7 +16,12 @@ build:
 	docker build . -t arc/turingbot
 
 # Start a pre-existing docker container in daemon mode
-docker-start:
+dstart:
+	docker run -d arc/turingbot
+
+# Make a docker container and start it in daemon mode
+drun:
+	docker build . -t arc/turingbot
 	docker run -d arc/turingbot
 
 # Format whole project

@@ -28,7 +28,7 @@ export class Module {
     /**
      * Called when the module is loaded. If you want to have a module with daemon functionality, this would be one way to implement it
     */
-   initialize: () => Promise<void>;
+   onInitialize: () => Promise<void>;
     /**
      * Subcommands are referenced by typing the base command, then the subcommand. If a command has subcommands, then onCall should not be defined. 
      */
@@ -77,7 +77,7 @@ let modules: Module[] = [];
 readdir('../modules/', (err, files) => {
  files.forEach(file => {
   const importedModule = import('./' + file).then(m =>
-    console.log("gnowo")
+    console.log("m")
   );
   });
 });
