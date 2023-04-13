@@ -47,7 +47,7 @@ export interface EventInfo {
 /**
  * Internal event logger
  * 
- * This should be used to log bot events. Depending on the config, events will be propagated through stdout, the configured channel, and configured DMs
+ * This should be used to log bot events. Depending on the config, events will be propagated through stdout, the configured channel, and configured DMs. One might use this to log a module starting or stopping, or something changing
  */
 export let eventLogger = {
     discordInitialized: false,
