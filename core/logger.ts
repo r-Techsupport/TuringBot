@@ -46,7 +46,7 @@ export interface EventInfo {
 
 /**
  * Internal event logger
- * 
+ *
  * This should be used to log bot events. Depending on the config, events will be propagated through stdout, the configured channel, and configured DMs. One might use this to log a module starting or stopping, or something changing
  */
 export let eventLogger = {
@@ -162,7 +162,6 @@ export let eventLogger = {
                 const loggingChannel = client.channels.cache.get(loggingChannelId);
                 loggingChannel.send({ embeds: [eventEmbed] });
             }
-
         }
 
         if (this.discordInitialized && botConfig.logging.directMessageLogging.verboseLevel >= verbosity) {
@@ -185,7 +184,6 @@ export let eventLogger = {
                     client.users.send(user, { embeds: [eventEmbed] });
                 }
             }
-
         }
     },
 };

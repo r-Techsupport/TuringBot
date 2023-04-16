@@ -1,5 +1,3 @@
-import { readdir } from "node:fs";
-
 import { eventLogger } from "./logger";
 import { DiscordEmbed } from "./embed";
 
@@ -20,17 +18,17 @@ export class Module {
      */
     helpMessage: string;
     /**
-     * If there are no subcommands specified, this will be called whenever the command is used. It can either return nothing, 
-     * or an embed that will be used to respond to the user. You don't need to make use of the response embed, it's there as a 
+     * If there are no subcommands specified, this will be called whenever the command is used. It can either return nothing,
+     * or an embed that will be used to respond to the user. You don't need to make use of the response embed, it's there as a
      * quality of life feature
      */
     onCall: (args: string) => Promise<void | DiscordEmbed>;
     /**
      * Called when the module is loaded. If you want to have a module with daemon functionality, this would be one way to implement it
-    */
-   onInitialize: () => Promise<void>;
+     */
+    onInitialize: () => Promise<void>;
     /**
-     * Subcommands are referenced by typing the base command, then the subcommand. If a command has subcommands, then onCall should not be defined. 
+     * Subcommands are referenced by typing the base command, then the subcommand. If a command has subcommands, then onCall should not be defined.
      */
     submodules: Module[] = [];
     /**
@@ -42,7 +40,7 @@ export class Module {
         this.command = command;
         this.helpMessage = helpMessage;
         this.onCall = onCall;
-        eventLogger.logEvent({category: "II", location: "core", description: `New module registered: ${command}`}, 3)
+        eventLogger.logEvent({ category: "II", location: "core", description: `New module registered: ${command}` }, 3);
     }
 
     /**
@@ -50,34 +48,22 @@ export class Module {
      * @param submoduleToRegister Submodule you'd like to add to the current Module or Submodule
      */
     registerSubmodule(submoduleToRegister: Module) {
-        this.submodules.push(submoduleToRegister)
+        this.submodules.push(submoduleToRegister);
     }
 
     /**
      * Turn on the module
      */
     enable() {
-      this.enabled = true;
-      eventLogger.logEvent({category: "II", location: "core", description: `${this.command} enabled`}, 3);
+        this.enabled = true;
+        eventLogger.logEvent({ category: "II", location: "core", description: `${this.command} enabled` }, 3);
     }
 
     /**
      * Turn off the module
      */
     disable() {
-      this.enabled = false;
-      eventLogger.logEvent({category: "II", location: "core", description: `${this.command} disabled`}, 3);
+        this.enabled = false;
+        eventLogger.logEvent({ category: "II", location: "core", description: `${this.command} disabled` }, 3);
     }
-
 }
-
-
-let modules: Module[] = [];
-
-readdir('../modules/', (err, files) => {
- files.forEach(file => {
-  const importedModule = import('./' + file).then(m =>
-    console.log("m")
-  );
-  });
-});
