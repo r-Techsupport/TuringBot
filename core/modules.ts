@@ -1,5 +1,5 @@
-import { eventLogger } from "./logger";
-import { DiscordEmbed } from "./embed";
+import { eventLogger } from "./logger.js";
+import { DiscordEmbed } from "./embed.js";
 
 /**
  * This allows extension of the bot's initial functionality

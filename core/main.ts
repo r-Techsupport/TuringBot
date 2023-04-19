@@ -3,11 +3,10 @@ import { readdir } from "fs";
 import { Worker } from "worker_threads";
 import { Client, Events, GatewayIntentBits } from "discord.js";
 
-import { botConfig } from "./config";
-import { eventLogger }from "./logger";
+import { botConfig } from "./config.js";
+import { eventLogger }from "./logger.js";
+import { formatDiagnosticsWithColorAndContext } from "typescript";
 
-console.log(botConfig);
-console.log(eventLogger)
 botConfig.readConfigFromFileSystem();
 eventLogger.logEvent({ category: "II", location: "core", description: "Loaded config" }, 2);
 export const client: any = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -29,13 +28,14 @@ client.once(Events.ClientReady, (clientEvent) => {
 let moduleWorkers = [];
 
 readdir("./modules/", (err, files) => {
-    console.log("err: " + err)
-    console.log("files: " + files);
+    if (err !== null) { throw err; }
     for (const file of files) {
-        console.log("file: " + file);
+
+        moduleWorkers.push(new Worker("./modules/" + file));
         // Prevent the .ts extension from being passed to the constructor
         // because extensions are mutable and do impact state, but aren't needed
-        moduleWorkers.push(new Worker(`./modules/` + file.slice(0, -3) + ".ts"));
+        //moduleWorkers.push(new Worker(`./modules/` + file.slice(0, -3) + ".js"));
+        //moduleWorkers.push(new Worker(`./modules/` + file));
         console.log(moduleWorkers);
     }
 });

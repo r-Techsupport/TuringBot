@@ -1,13 +1,16 @@
 {
     "compilerOptions": {
         "esModuleInterop": true,
-        "module": "CommonJS",
+        "module": "ESNext",
         "target": "ESnext",
-        "outDir": "build",
-        "sourceMap": true
+        "lib": ["ESNext"],
+        "outDir": "target",
+        "sourceMap": true,
+        "moduleResolution": "node"
     },
     "ts-node": {
         "files": true,
-        "swc": true
+        "swc": true,
+        "esm": true
     }
 }

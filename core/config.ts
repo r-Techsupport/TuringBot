@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import { parse as parseJSONC } from "jsonc-parser";
 
-import { logUtil } from "./logger";
+import { logUtil } from "./logger.js";
 
 /**
  * This is an object mirror of `config.jsonc`. You can load the config from the filesystem with `readConfigFromFileSystem()`.

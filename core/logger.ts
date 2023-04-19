@@ -5,9 +5,9 @@
 // Used to color stdout console colors
 import chalk from "chalk";
 
-import { botConfig } from "./config";
-import { DiscordEmbed } from "./embed";
-import { client } from "./main";
+import { botConfig } from "./config.js";
+import { DiscordEmbed } from "./embed.js";
+import { client } from "./main.js";
 
 /**
  * Different levels of verbose logging.
@@ -206,4 +206,4 @@ function categoryToPrettyString(shortenedCategory: EventCategory): string {
     }
 }
 
-export * as logUtil from "./logger";
+export * as logUtil from "./logger.js";
