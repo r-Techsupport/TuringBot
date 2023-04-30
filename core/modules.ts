@@ -1,4 +1,5 @@
 import { eventLogger } from "./logger.js";
+import { botConfig } from "./config.js";
 import { DiscordEmbed } from "./embed.js";
 
 /**
@@ -17,16 +18,24 @@ export class Module {
      * This message will be displayed when the `help` utility is called, and when a command that has subcommands is referenced
      */
     helpMessage: string;
+
+    executeCommand;
     /**
      * If there are no subcommands specified, this will be called whenever the command is used. It can either return nothing,
      * or an embed that will be used to respond to the user. You don't need to make use of the response embed, it's there as a
      * quality of life feature
      */
-    onCall: (args: string) => Promise<void | DiscordEmbed>;
+    onCommandExecute(functionToCall: (args: string) => Promise<void | DiscordEmbed>) {
+        this.executeCommand = functionToCall;
+    }
+
+    initialize: () => Promise<void>;
     /**
-     * Called when the module is loaded. If you want to have a module with daemon functionality, this would be one way to implement it
+     * Set a function to call when first loading the module. If you want to have a module with daemon functionality, this would be one way to implement it
      */
-    onInitialize: () => Promise<void>;
+    onInitialize(functionToInitializeWith: () => Promise<void>) {
+        this.initialize = functionToInitializeWith;
+    }
     /**
      * Subcommands are referenced by typing the base command, then the subcommand. If a command has subcommands, then onCall should not be defined.
      */
@@ -36,10 +45,18 @@ export class Module {
      */
     enabled: boolean;
 
-    constructor(command: string, helpMessage: string, onCall?: (args: string) => Promise<void | DiscordEmbed>) {
+    /**
+     * Internal way to log events from within the class, don't use this externally, import the eventLogger object
+     */
+
+    constructor(
+        command: string,
+        helpMessage: string,
+        onCommandExecute?: (args: string) => Promise<void | DiscordEmbed>
+    ) {
         this.command = command;
         this.helpMessage = helpMessage;
-        this.onCall = onCall;
+        this.executeCommand = onCommandExecute;
         eventLogger.logEvent({ category: "II", location: "core", description: `New module registered: ${command}` }, 3);
     }
 
@@ -65,5 +82,12 @@ export class Module {
     disable() {
         this.enabled = false;
         eventLogger.logEvent({ category: "II", location: "core", description: `${this.command} disabled` }, 3);
+    }
+
+    /**
+     * Fetch the config matching the command name from config.jsonc
+     */
+    fetchConfig() {
+        return botConfig.modules[this.command];
     }
 }

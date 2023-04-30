@@ -47,9 +47,13 @@ export interface EventInfo {
 /**
  * Internal event logger
  *
- * This should be used to log bot events. Depending on the config, events will be propagated through stdout, the configured channel, and configured DMs. One might use this to log a module starting or stopping, or something changing
+ * This should be used to log bot events. Depending on the config, events will be propagated through stdout, the configured channel, and configured DMs.
+ * One might use this to log a module starting or stopping, or something changing. This is wrapped inside of an object for convenience, you probably want `logEvent`.
  */
 export let eventLogger = {
+    /**
+     * Whether or the discord API connection has been made
+     */
     discordInitialized: false,
     /**
      * Use to log an bot event. Depending on the config, this will be propagated to stdout, a configured Discord channel, or the PMs of a configured user.
@@ -71,7 +75,7 @@ export let eventLogger = {
         /**
          * Convert stdout to a particular color.
          * ```
-         * colorEventType("[" + event.category + "]")
+         * console.log(colorEventType("This color will change depending on the event type: " + event.category))
          * ```
          */
         let colorEventType;
@@ -180,7 +184,7 @@ export let eventLogger = {
                 );
             } else {
                 // DM everyone specified in the config
-                for (let user in subscribedUsers) {
+                for (const user of subscribedUsers) {
                     client.users.send(user, { embeds: [eventEmbed] });
                 }
             }
@@ -192,7 +196,9 @@ export let eventLogger = {
  * convert an event type to the extended 'human' type, EG:
  *
  * `II` -> `Information`
+ *
  * `WW` -> `Warning`
+ *
  * `EE` -> `Error`
  */
 function categoryToPrettyString(shortenedCategory: EventCategory): string {
@@ -205,5 +211,3 @@ function categoryToPrettyString(shortenedCategory: EventCategory): string {
             return "Error";
     }
 }
-
-export * as logUtil from "./logger.js";
