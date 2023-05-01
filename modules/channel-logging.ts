@@ -5,6 +5,9 @@ a comparatively very high level amount of processing compared to other tasks, th
 import { Events } from "discord.js";
 import * as util from "../core/util.js";
 
+/**
+ * An efficient data structure for the buffered handling of messages, make use of the `read()`, `write()`, and `onWrite()` methods
+ */
 class MessageRingBuffer {
     /**
      * The initial number of elements to be held in the buffer. The number of elements in the buffer may increase
@@ -36,7 +39,12 @@ class MessageRingBuffer {
      */
     buf: any[];
 
-    constructor(initialSize: number = 32) {
+    /**
+     *
+     * @param initialSize However many elements are to be initially allocated in the buffer. More elements may be allocated if necessary, but
+     * this is the minimum amount to be allocated at all times
+     */
+    constructor(initialSize: number = 8) {
         this.buf = Array(initialSize);
     }
 
@@ -44,7 +52,9 @@ class MessageRingBuffer {
      * Read and return a message, move the read cursor forwards. If there's no more unread data in the buffer, returns `null`
      */
     //TODO: annotate return types once I figure out if a message has a type
-    read() {
+    async read() {
+        //artificially slow down read calls to test ringbuffer reallocation
+        await new Promise((r) => setTimeout(r, 2000));
         if (this.numValues === 0) {
             return null;
         }
@@ -61,15 +71,15 @@ class MessageRingBuffer {
     /**
      * Called whenever a message is written into a buffer
      */
-    private calledOnWrite = () => {};
+    calledOnWrite = () => {};
 
     /**
      * Write a message into the buffer and advance the write cursor forwards, allocating more space if necessary
      */
     write(message) {
         // TODO: if write cursor has written an entire buffer's worth of data and hasn't been read yet, allocate more
-        if (this.numValues > this.buf.length - 1) {
-            throw new Error("attempting to overwrite values that haven't been written yet");
+        if (this.numValues == this.buf.length - 1) {
+            this.expandBuffer(this.reallocationStepSize);
         }
 
         this.buf[this.writeCursorIndex] = message;
@@ -91,6 +101,39 @@ class MessageRingBuffer {
     onWrite(funcToCallOnWrite) {
         this.calledOnWrite = funcToCallOnWrite;
     }
+
+    /**
+     * Expand the buffer size by inserting space after the write cursor and shifting everything
+     */
+    expandBuffer(increaseBy) {
+        // select everything after the write cursor and shift it forwards
+        let shiftBlock = this.buf.splice(this.writeCursorIndex + 1);
+        for (let i = 0; i < increaseBy; i++) {
+            this.buf.push(null);
+        }
+        for (let item of shiftBlock) {
+            this.buf.push(item);
+        }
+        // move the read cursor forwards
+        if (this.readCursorIndex > this.writeCursorIndex) {
+            for (let i = 0; i < increaseBy; i++) {
+                if (this.readCursorIndex == this.buf.length - 1) {
+                    this.readCursorIndex = 0;
+                } else {
+                    this.readCursorIndex += 1;
+                }
+            }
+        }
+
+        util.eventLogger.logEvent(
+            {
+                category: "II",
+                location: "channel logging",
+                description: `Expanded ringbuffer size (current size: ${this.buf.length}`,
+            },
+            3
+        );
+    }
 }
 let channelLogging = new util.Module("logging", "Manage discord channel and thread logging");
 
@@ -98,20 +141,52 @@ channelLogging.onInitialize(async () => {
     let mBuffer = new MessageRingBuffer(3);
     // when a message is sent, add it to the buffer
     util.client.on(Events.MessageCreate, (message) => {
-        mBuffer.write(message);
+        if (!message.author.bot) {
+            mBuffer.write(message);
+        }
     });
 
     // refer to the channel map
     mBuffer.onWrite(async () => {
-        while (mBuffer.numValues > 0) {
-            console.log(mBuffer.buf);
-            // get the channel id, reference the channelmap to determine where the message needs to be logged
-            const message = mBuffer.read();
-            const logChannelId = channelLogging.fetchConfig().channelMap[message.channelId];
-            // get the logging chanel from cache send a log there
-            let logChannel = util.client.channels.cache.get(logChannelId);
-            logChannel.send({ embeds: [{}] });
-        }
+        // get the channel id, reference the channelmap to determine where the message needs to be logged
+        const message = await mBuffer.read();
+        const logChannelId = channelLogging.fetchConfig().channelMap[message.channelId];
+        // get the logging channel from cache send a log there
+        let logChannel = util.client.channels.cache.get(logChannelId);
+        logChannel.send({
+            embeds: [
+                {
+                    fields: [
+                        {
+                            name: "Content",
+                            value: message.cleanContent,
+                        },
+                        {
+                            name: "Channel",
+                            value: `${message.channel}`,
+                        },
+                        {
+                            name: "Nickname",
+                            value: message.author.tag,
+                            inline: true,
+                        },
+                        {
+                            name: "Username",
+                            value: `${message.username}`,
+                            inline: true,
+                        },
+                        {
+                            name: "Roles",
+                            value: `${message.member.roles.roles}`,
+                        },
+                    ],
+                },
+            ],
+            timestamp: new Date().toISOString(),
+            footer: {
+                text: `User ID: ${message.author.id}`,
+            },
+        });
     });
 });
 
