@@ -6,8 +6,8 @@
 import chalk from "chalk";
 
 import { botConfig } from "./config.js";
-import { DiscordEmbed } from "./embed.js";
 import { client } from "./main.js";
+import { APIEmbed, TextChannel } from "discord.js";
 
 /**
  * Different levels of verbose logging.
@@ -133,7 +133,7 @@ export let eventLogger = {
                 // He screams, for this should not be possible. (gray)
                 0xaaaaaa;
         }
-        const eventEmbed: DiscordEmbed = {
+        const eventEmbed: APIEmbed = {
             title: "Event Type: " + categoryToPrettyString(event.category),
             description: "Location: " + event.location,
             color: embedColor,
@@ -163,7 +163,7 @@ export let eventLogger = {
                 );
             } else {
                 // send the event
-                const loggingChannel = client.channels.cache.get(loggingChannelId);
+                const loggingChannel = client.channels.cache.get(loggingChannelId) as TextChannel;
                 loggingChannel.send({ embeds: [eventEmbed] });
             }
         }

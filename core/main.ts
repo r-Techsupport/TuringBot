@@ -6,7 +6,7 @@ import { botConfig } from "./config.js";
 import { eventLogger } from "./logger.js";
 import { Module } from "module";
 
-export const client: any = new Client({
+export const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
 });
 botConfig.readConfigFromFileSystem();
@@ -27,7 +27,7 @@ client.once(Events.ClientReady, async (clientEvent) => {
     );
 
     // `readdir` relative paths are based on the pwd of the node process
-    let files = readdirSync("./modules");
+    let files = readdirSync("./target/modules");
     for (const file of files) {
         // Prevent map files from being loaded as modules, they're used to allow the debugger
         // to point to the typescript files with errors

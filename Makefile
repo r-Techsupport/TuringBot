@@ -4,10 +4,8 @@ prep:
 
 # Start the bot with typechecking, but outside of docker
 start:
-	cp ./config.jsonc ./target/config.jsonc
 	npx tsc
-	cd target; \
-	node ./core/main.js
+	node ./target/core/main.js
 
 # Start the bot without typechecking. Faster, but not recommended when 
 # troubleshooting or starting a prod instance.

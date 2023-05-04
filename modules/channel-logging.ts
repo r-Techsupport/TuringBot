@@ -2,7 +2,7 @@
 This module provides discord logging, and is intended to log messages to a collection of logging channels. Because this requires 
 a comparatively very high level amount of processing compared to other tasks, this code should be *very* optimized
 */
-import { Events } from "discord.js";
+import { APIEmbed, Events, TextChannel } from "discord.js";
 import * as util from "../core/util.js";
 
 /**
@@ -50,11 +50,13 @@ class MessageRingBuffer {
 
     /**
      * Read and return a message, move the read cursor forwards. If there's no more unread data in the buffer, returns `null`
+     *
+     * This will also shrink the buffer under the following conditions:
+     * - The last item is read from the buffer
+     * - The buffer is larger than the initial set size (`initialBufferSize`)
      */
     //TODO: annotate return types once I figure out if a message has a type
     async read() {
-        //artificially slow down read calls to test ringbuffer reallocation
-        await new Promise((r) => setTimeout(r, 2000));
         if (this.numValues === 0) {
             return null;
         }
@@ -65,6 +67,25 @@ class MessageRingBuffer {
             this.readCursorIndex += 1;
         }
         this.numValues -= 1;
+
+        // check to see if the buffer is now empty and larger than the initial allocation size, then decrease buffer size
+        if (this.numValues === 0 && this.buf.length > this.initialBufferSize) {
+            // because all data at this point is read and considered "stale", the
+            // position of r/w cursors doesn't matter in regards to data integrity
+            // reset the cursors back to the beginning of the buffer, and shrink by 4 elements
+            this.readCursorIndex = 0;
+            this.writeCursorIndex = 0;
+            this.buf.length -= this.reallocationStepSize;
+            util.eventLogger.logEvent(
+                {
+                    category: "II",
+                    description: `Shrunk ringbuffer size (new size: ${this.buf.length})`,
+                    location: "channel-logging",
+                },
+                3
+            );
+        }
+
         return returnVal;
     }
 
@@ -128,8 +149,8 @@ class MessageRingBuffer {
         util.eventLogger.logEvent(
             {
                 category: "II",
-                location: "channel logging",
-                description: `Expanded ringbuffer size (current size: ${this.buf.length}`,
+                location: "channel-logging",
+                description: `Expanded ringbuffer size (current size: ${this.buf.length})`,
             },
             3
         );
@@ -138,7 +159,19 @@ class MessageRingBuffer {
 let channelLogging = new util.Module("logging", "Manage discord channel and thread logging");
 
 channelLogging.onInitialize(async () => {
-    let mBuffer = new MessageRingBuffer(3);
+    /**
+     * `GuildMember` is the server specific object for a `User`, so that's fetched
+     * to get info like nickname, and perform administrative tasks  on a user.
+     *
+     * `Guild` is the way to interact with server specific functionality.
+     *
+     * This makes the assumption that the bot is deployed to 1 guild.
+     *
+     * https://discord.js.org/#/docs/discord.js/main/class/Guild
+     */
+    const guild = util.client.guilds.cache.first();
+
+    let mBuffer = new MessageRingBuffer(10);
     // when a message is sent, add it to the buffer
     util.client.on(Events.MessageCreate, (message) => {
         if (!message.author.bot) {
@@ -150,13 +183,28 @@ channelLogging.onInitialize(async () => {
     mBuffer.onWrite(async () => {
         // get the channel id, reference the channelmap to determine where the message needs to be logged
         const message = await mBuffer.read();
-        const logChannelId = channelLogging.fetchConfig().channelMap[message.channelId];
-        // get the logging channel from cache send a log there
-        let logChannel = util.client.channels.cache.get(logChannelId);
-        logChannel.send({
+        if (!(message.channelId in channelLogging.fetchConfig().channelMap)) {
+            return;
+        }
+        const logChannelID = channelLogging.fetchConfig().channelMap[message.channelId];
+        
+        // get the logging channel from cache send a log there containing relevant info
+        // user roles are not logged, because it's unnecessary overhead
+        let logChannel = util.client.channels.cache.get(logChannelID) as TextChannel;
+        await logChannel.send({
             embeds: [
                 {
                     fields: [
+                        {
+                            name: "Username",
+                            value: `${message.author.tag}`,
+                            inline: true,
+                        },
+                        {
+                            name: "Nickname",
+                            value: `${(await guild.members.fetch(message.author.id)).displayName}`,
+                            inline: true,
+                        },
                         {
                             name: "Content",
                             value: message.cleanContent,
@@ -165,27 +213,13 @@ channelLogging.onInitialize(async () => {
                             name: "Channel",
                             value: `${message.channel}`,
                         },
-                        {
-                            name: "Nickname",
-                            value: message.author.tag,
-                            inline: true,
-                        },
-                        {
-                            name: "Username",
-                            value: `${message.username}`,
-                            inline: true,
-                        },
-                        {
-                            name: "Roles",
-                            value: `${message.member.roles.roles}`,
-                        },
                     ],
+                    timestamp: new Date().toISOString(),
+                    footer: {
+                        text: `User ID: ${message.author.id}`,
+                    },
                 },
             ],
-            timestamp: new Date().toISOString(),
-            footer: {
-                text: `User ID: ${message.author.id}`,
-            },
         });
     });
 });

@@ -1,6 +1,6 @@
 import { eventLogger } from "./logger.js";
 import { botConfig } from "./config.js";
-import { DiscordEmbed } from "./embed.js";
+import { APIEmbed } from "discord.js";
 
 /**
  * This allows extension of the bot's initial functionality
@@ -25,7 +25,7 @@ export class Module {
      * or an embed that will be used to respond to the user. You don't need to make use of the response embed, it's there as a
      * quality of life feature
      */
-    onCommandExecute(functionToCall: (args: string) => Promise<void | DiscordEmbed>) {
+    onCommandExecute(functionToCall: (args: string) => Promise<void | APIEmbed>) {
         this.executeCommand = functionToCall;
     }
 
@@ -52,7 +52,7 @@ export class Module {
     constructor(
         command: string,
         helpMessage: string,
-        onCommandExecute?: (args: string) => Promise<void | DiscordEmbed>
+        onCommandExecute?: (args: string) => Promise<void | APIEmbed>
     ) {
         this.command = command;
         this.helpMessage = helpMessage;
@@ -85,7 +85,7 @@ export class Module {
     }
 
     /**
-     * Fetch the config matching the command name from config.jsonc
+     * Fetch the config for this module using the command name from config.jsonc
      */
     fetchConfig() {
         return botConfig.modules[this.command];
