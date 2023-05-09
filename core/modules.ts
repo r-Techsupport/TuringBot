@@ -49,11 +49,7 @@ export class Module {
      * Internal way to log events from within the class, don't use this externally, import the eventLogger object
      */
 
-    constructor(
-        command: string,
-        helpMessage: string,
-        onCommandExecute?: (args: string) => Promise<void | APIEmbed>
-    ) {
+    constructor(command: string, helpMessage: string, onCommandExecute?: (args: string) => Promise<void | APIEmbed>) {
         this.command = command;
         this.helpMessage = helpMessage;
         this.executeCommand = onCommandExecute;

@@ -6,7 +6,8 @@
         "lib": ["ESNext"],
         "outDir": "target",
         "sourceMap": true,
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "incremental": true
     },
     "ts-node": {
         "files": true,

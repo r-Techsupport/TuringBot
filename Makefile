@@ -2,15 +2,10 @@
 prep:
 	npm i
 
-# Start the bot with typechecking, but outside of docker
+# Start the bot without typechecking, outside of docker
 start:
 	npx tsc
 	node ./target/core/main.js
-
-# Start the bot without typechecking. Faster, but not recommended when 
-# troubleshooting or starting a prod instance.
-fstart:
-	npx ts-node --transpileOnly ./core/main.ts
 
 # Build a docker container
 build:

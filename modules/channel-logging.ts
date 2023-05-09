@@ -79,7 +79,7 @@ class MessageRingBuffer {
             util.eventLogger.logEvent(
                 {
                     category: "II",
-                    description: `Shrunk ringbuffer size (new size: ${this.buf.length})`,
+                    description: `Shrunk message ringbuffer size (new size: ${this.buf.length})`,
                     location: "channel-logging",
                 },
                 3
@@ -187,7 +187,7 @@ channelLogging.onInitialize(async () => {
             return;
         }
         const logChannelID = channelLogging.fetchConfig().channelMap[message.channelId];
-        
+
         // get the logging channel from cache send a log there containing relevant info
         // user roles are not logged, because it's unnecessary overhead
         let logChannel = util.client.channels.cache.get(logChannelID) as TextChannel;
