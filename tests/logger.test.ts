@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import chalk from "chalk";
 
-import { eventLogger } from "../core/logger";
+import { EventCategory, eventLogger } from "../core/logger";
 import { botConfig } from "../core/config";
 
 // This should probably be removed later, I'd like to make tests run when
@@ -19,7 +19,7 @@ describe("testing logging", () => {
             {
                 location: "testing",
                 description: "logging an information event",
-                category: "II",
+                category: EventCategory.Info,
             },
             3
         );
@@ -30,7 +30,7 @@ describe("testing logging", () => {
             {
                 location: "testing",
                 description: "logging a warning event",
-                category: "WW",
+                category: EventCategory.Warning,
             },
             3
         );
@@ -41,7 +41,7 @@ describe("testing logging", () => {
             {
                 location: "testing",
                 description: "logging an error event",
-                category: "EE",
+                category: EventCategory.Error,
             },
             3
         );

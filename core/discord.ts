@@ -9,20 +9,36 @@ import { APIEmbed } from "discord.js";
  */
 export const quickEmbed = {
     /**
-     * simple function that generates a minimal DiscordEmbed with only the `description` set. Other options can be set with `otherOptions`
+     * simple function that generates a minimal APIEmbed with only the `description` set.
+     *  Other options can be set with `otherOptions`
      *
-     * ```
-     * // Just the description set
-     * simpleEmbed("they don't did make em like they anymore these days do")
-     * // Maybe you want a color
-     * simpleEmbed("they don't did make em like they anymore these days do", { color: 0xFF0000 })
-     * ```
      * @param displayText The text you'd like the embed to contain
-     * @param otherOptions Any other options, specified in an object
-     * @returns DiscordEmbed
+     *
+     * @param otherOptions Any custom changes you'd like to make to the embed.
+     * See https://discordjs.guide/popular-topics/embeds.html#using-an-embed-object for specific options
+     *
+     * @example
+     * // Just the description set
+     * simpleEmbed("they don't did make em like they anymore these days do");
+     * // Maybe you want to make the embed red
+     * simpleEmbed("they don't did make em like they anymore these days do", { color: 0xFF0000 });
      */
     simpleEmbed(displayText: string, otherOptions: APIEmbed = {}): APIEmbed {
         otherOptions.description = displayText;
         return otherOptions;
+    },
+
+    /**
+     * A pre-formatted embed that should be used to indicate command failure
+     */
+    errorEmbed(errorText: string): APIEmbed {
+        let responseEmbed: APIEmbed = {
+            description: "❌ " + errorText,
+            color: 0xff0000,
+            footer: {
+                text: "Operation failed.",
+            },
+        };
+        return responseEmbed;
     },
 };

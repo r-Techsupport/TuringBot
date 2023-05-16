@@ -2,7 +2,7 @@
 This module provides discord logging, and is intended to log messages to a collection of logging channels. Because this requires 
 a comparatively very high level amount of processing compared to other tasks, this code should be *very* optimized
 */
-import { APIEmbed, Events, TextChannel } from "discord.js";
+import { APIEmbed, Events, Guild, Message, MessageActionRowComponent, TextChannel } from "discord.js";
 import * as util from "../core/util.js";
 
 /**
@@ -14,6 +14,8 @@ class MessageRingBuffer {
      * and decrease by whatever `reallocationStepSize` is set to, but it will not ever be less than `initialBufferSize`
      */
     initialBufferSize: number;
+    // TODO: add a max buffer size, this behavior can be implemented by over-writing data and shoving the read cursor forwards.
+    // it's a lossy method of keeping memory under control, but we could maybe add an event
     /**
      * When the write cursor is behind the read cursor but has data to write into the buffer, the read cursor and all data
      * in front of it is shifted forwards by `reallocationStepSize` to avoid overwriting messages that haven't been handled
@@ -37,14 +39,15 @@ class MessageRingBuffer {
     /**
      * All messages are stored here. This should not be directly accessed, instead use the `read()` and `write()` methods
      */
-    buf: any[];
+    buf: (Message | null)[];
 
     /**
-     *
+     * Create a new ringbuffer
      * @param initialSize However many elements are to be initially allocated in the buffer. More elements may be allocated if necessary, but
      * this is the minimum amount to be allocated at all times
      */
     constructor(initialSize: number = 8) {
+        this.initialBufferSize = initialSize;
         this.buf = Array(initialSize);
     }
 
@@ -56,7 +59,7 @@ class MessageRingBuffer {
      * - The buffer is larger than the initial set size (`initialBufferSize`)
      */
     //TODO: annotate return types once I figure out if a message has a type
-    async read() {
+    async read(): Promise<Message | null> {
         if (this.numValues === 0) {
             return null;
         }
@@ -78,7 +81,7 @@ class MessageRingBuffer {
             this.buf.length -= this.reallocationStepSize;
             util.eventLogger.logEvent(
                 {
-                    category: "II",
+                    category: util.EventCategory.Info,
                     description: `Shrunk message ringbuffer size (new size: ${this.buf.length})`,
                     location: "channel-logging",
                 },
@@ -97,7 +100,7 @@ class MessageRingBuffer {
     /**
      * Write a message into the buffer and advance the write cursor forwards, allocating more space if necessary
      */
-    write(message) {
+    write(message: Message) {
         // TODO: if write cursor has written an entire buffer's worth of data and hasn't been read yet, allocate more
         if (this.numValues == this.buf.length - 1) {
             this.expandBuffer(this.reallocationStepSize);
@@ -119,14 +122,14 @@ class MessageRingBuffer {
     /**
      * Define a function to call directly after a message is written to the buffer
      */
-    onWrite(funcToCallOnWrite) {
+    onWrite(funcToCallOnWrite: () => {}) {
         this.calledOnWrite = funcToCallOnWrite;
     }
 
     /**
      * Expand the buffer size by inserting space after the write cursor and shifting everything
      */
-    expandBuffer(increaseBy) {
+    expandBuffer(increaseBy: number) {
         // select everything after the write cursor and shift it forwards
         let shiftBlock = this.buf.splice(this.writeCursorIndex + 1);
         for (let i = 0; i < increaseBy; i++) {
@@ -148,7 +151,7 @@ class MessageRingBuffer {
 
         util.eventLogger.logEvent(
             {
-                category: "II",
+                category: util.EventCategory.Info,
                 location: "channel-logging",
                 description: `Expanded ringbuffer size (current size: ${this.buf.length})`,
             },
@@ -169,7 +172,8 @@ channelLogging.onInitialize(async () => {
      *
      * https://discord.js.org/#/docs/discord.js/main/class/Guild
      */
-    const guild = util.client.guilds.cache.first();
+    // non-null assertion: if the bot isn't in a server, than throwing an error can be considered reasonable behavior
+    const guild = util.client.guilds.cache.first()!;
 
     let mBuffer = new MessageRingBuffer(10);
     // when a message is sent, add it to the buffer
@@ -182,18 +186,21 @@ channelLogging.onInitialize(async () => {
     // refer to the channel map
     mBuffer.onWrite(async () => {
         // get the channel id, reference the channelmap to determine where the message needs to be logged
-        const message = await mBuffer.read();
-        if (!(message.channelId in channelLogging.fetchConfig().channelMap)) {
-            return;
-        }
-        const logChannelID = channelLogging.fetchConfig().channelMap[message.channelId];
+        // Non-null assertion: This code is only called when data is written to the buffer, thus ensuring we're handling non-null values
+        const message: Message = await mBuffer.read() as Message;
+        // Ignore all messages sent in channels not defined by the channel map
+        if (!(message.channelId in channelLogging.config.channelMap)) return;
 
+        const logChannelID = channelLogging.config.channelMap[message.channelId];
         // get the logging channel from cache send a log there containing relevant info
         // user roles are not logged, because it's unnecessary overhead
         let logChannel = util.client.channels.cache.get(logChannelID) as TextChannel;
         await logChannel.send({
             embeds: [
                 {
+                    thumbnail: {
+                        url: message.author.avatarURL()!
+                    },
                     fields: [
                         {
                             name: "Username",

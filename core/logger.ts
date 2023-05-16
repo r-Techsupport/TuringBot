@@ -27,9 +27,13 @@ export type VerbosityLevel = 0 | 1 | 2 | 3;
  *
  * `WW` - Warning
  *
- * `EE` - Error; The logger will not throw an error, you should either handle the error or throw an error when logging an event of this type
+ * `EE` - Error; The logger will not throw an error, you should either handle the error gracefully or throw an error when logging an event of this type
  */
-export type EventCategory = "II" | "WW" | "EE";
+export enum EventCategory {
+    Info = "II",
+    Warning = "WW",
+    Error = "EE"
+}
 
 /**
  * Collection of information about a bot event.
@@ -129,7 +133,7 @@ export let eventLogger = {
                 break;
             default:
                 // He screams, for this should not be possible. (gray)
-                0xaaaaaa;
+                embedColor = 0xaaaaaa;
         }
         const eventEmbed: APIEmbed = {
             title: "Event Type: " + categoryToPrettyString(event.category),
@@ -152,7 +156,7 @@ export let eventLogger = {
                 botConfig.logging.loggingChannel.verboseLevel = 0;
                 eventLogger.logEvent(
                     {
-                        category: "WW",
+                        category: EventCategory.Warning,
                         location: "core",
                         description:
                             "No logging channel ID has been set, to prevent this warning, set `logging.loggingChannel.verboseLevel` to 0 in the config. Logging through discord will be disabled.",
@@ -173,7 +177,7 @@ export let eventLogger = {
                 botConfig.logging.directMessageLogging.verboseLevel = 0;
                 eventLogger.logEvent(
                     {
-                        category: "WW",
+                        category: EventCategory.Warning,
                         location: "core",
                         description:
                             "No users are configured to receive events in DMs, however an attempt was made to log an event in DMs. To prevent this warning, set `logging.directMessageLogging.verboseLevel` to 0. All further DM events will be silenced.",
@@ -193,19 +197,19 @@ export let eventLogger = {
 /**
  * convert an event type to the extended 'human' type, EG:
  *
- * `II` -> `Information`
+ * EventCategory.Info (`II`) -> `Information`
  *
- * `WW` -> `Warning`
+ * EventCategory.Warning (`WW`) -> `Warning`
  *
- * `EE` -> `Error`
+ * EventCategory.Error (`EE`) -> `Error`
  */
 function categoryToPrettyString(shortenedCategory: EventCategory): string {
     switch (shortenedCategory) {
-        case "II":
+        case EventCategory.Info:
             return "Information";
-        case "WW":
+        case EventCategory.Warning:
             return "Warning";
-        case "EE":
+        case EventCategory.Error:
             return "Error";
     }
 }
