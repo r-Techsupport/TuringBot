@@ -32,7 +32,7 @@ export type VerbosityLevel = 0 | 1 | 2 | 3;
 export enum EventCategory {
     Info = "II",
     Warning = "WW",
-    Error = "EE"
+    Error = "EE",
 }
 
 /**

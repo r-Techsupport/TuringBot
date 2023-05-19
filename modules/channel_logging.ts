@@ -187,7 +187,7 @@ channelLogging.onInitialize(async () => {
     mBuffer.onWrite(async () => {
         // get the channel id, reference the channelmap to determine where the message needs to be logged
         // Non-null assertion: This code is only called when data is written to the buffer, thus ensuring we're handling non-null values
-        const message: Message = await mBuffer.read() as Message;
+        const message: Message = (await mBuffer.read()) as Message;
         // Ignore all messages sent in channels not defined by the channel map
         if (!(message.channelId in channelLogging.config.channelMap)) return;
 
@@ -199,7 +199,7 @@ channelLogging.onInitialize(async () => {
             embeds: [
                 {
                     thumbnail: {
-                        url: message.author.avatarURL()!
+                        url: message.author.avatarURL()!,
                     },
                     fields: [
                         {

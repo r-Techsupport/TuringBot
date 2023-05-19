@@ -18,12 +18,15 @@
     },
     "dependencies": {
         "@types/node": "^18.15.11",
+        "bufferutil": "^4.0.7",
         "chalk": "^4.1.2",
         "discord.js": "^14.9.0",
         "jsonc-parser": "^3.2.0",
         "node": "^19.8.1",
         "ts-node": "^10.9.1",
-        "typescript": "^5.0.2"
+        "typescript": "^5.0.2",
+        "utf-8-validate": "^6.0.3",
+        "zlib-sync": "^0.1.8"
     },
     "devDependencies": {
         "prettier": "^2.8.7"
