@@ -3,9 +3,9 @@ import { APIEmbedField, Client, Events, GatewayIntentBits, Message, APIEmbed } f
 
 import { botConfig } from "./config.js";
 import { EventCategory, eventLogger } from "./logger.js";
-import { Module } from "./modules.js";
-import type { Module as TModule } from "./modules.js";
+import { RootModule, SubModule } from "./modules.js";
 import { quickEmbed } from "./discord.js";
+import { describe } from "node:test";
 
 export const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
@@ -13,7 +13,7 @@ export const client = new Client({
 
 botConfig.readConfigFromFileSystem();
 
-let modules: Module[] = [];
+let modules: RootModule[] = [];
 
 // When the bot initializes a connection with the discord API
 client.once(Events.ClientReady, async (clientEvent) => {
@@ -78,11 +78,11 @@ function listen() {
          *
          * @returns Will return nothing if it doesn't find a module, or return the module it found
          */
-        function getModWithFirstToken(): Module | void {
+        function getModWithFirstToken(): RootModule | void {
             const token = tokens[0].toLowerCase();
             for (const mod of modules) {
                 if (token === mod.command || mod.aliases.includes(token)) {
-                    commandUsed.push(tokens.shift()!)
+                    commandUsed.push(tokens.shift()!);
                     return mod;
                 }
             }
@@ -92,25 +92,16 @@ function listen() {
         if (!foundRootModule) {
             return;
         }
-        /* Because the logical flow can be a bit hard to follow for the below section, it's explained in
-         * standard terminology here.
-         *
-         * We've already determined that the user is attempting to reference a command because their message starts
-         * with one of the defined prefixes, and the token directly after the prefix references a valid command.
-         *
-         * First it's determined whether or not the second token references a submodule for the first command.
-         * If it does:
-         *  - The first token is removed
-         */
 
         /**
          * This module is recursively set as submodules are searched for
          */
-        let currentModule = foundRootModule;
+        let currentModule: RootModule | SubModule = foundRootModule;
 
+        // this code will resolve currentModule to the last valid module in the list of tokens,
+        // removing the first token and adding it to
         while (tokens.length > 0) {
             const token = tokens[0].toLowerCase();
-
             // first check to see if the first token in the list references a module or any of its aliases
             for (const mod of currentModule.submodules) {
                 if (token === mod.command || mod.aliases.includes(token)) {
@@ -125,9 +116,8 @@ function listen() {
             // the token doesn't reference a command, move on, stop trying to resolve
             break;
         }
+
         // if we've reached this point, then everything in `commandUsed` points to a valid command,
-
-
         /*
          * There are two logical flows that should take place now:
          * - Display help message if the last valid found module (currentModule) has submodules (don't execute to prevent unintended behavior)
@@ -155,125 +145,6 @@ function listen() {
             message.reply({ embeds: [generateHelpMessageForModule(currentModule, commandUsed.join(" "))] });
             return;
         }
-
-        /*
-         */
-
-        //currentModule = ;
-        // remove the first token from tokens
-        // non-null assertion: this code is only reachable if tokens[0] is set
-        // `token` is not used here because it doesn't match the command used casewise, and was just defined for comparison purposes
-
-        /*
-         * There's one final case:
-         * The user typed out part of a command. If we've reached this point, then everything the user
-         * has typed has been part of a valid command, but the command they've mentioned still has subcommands.
-         *
-         * Now display help message with all of the subcommands
-         */
-
-        // /** the module being checked against, this value is updated as we iterate over nested modules */
-        // let currentModule: Module;
-        // // first check and see if the first token references a module or any of its aliases
-        // // if it's not, stop doing anything and return
-        // for (let mod of modules) {
-        //     if (tokens[0].toLowerCase() === mod.command || mod.aliases.includes(tokens[0].toLowerCase())) {
-        //         currentModule = mod;
-        //         // remove the first token from tokens
-        //         // non-null assertion: this code is only reachable if tokens[0] is set
-        //         commandUsed.push(tokens.shift()!);
-        //         break;
-        //     }
-        // }
-
-        // if (typeof currentModule! === undefined) {
-        //     return;
-        // }
-
-        // while (tokens.length >= 0) {
-        //     // at this point, assume the user is referencing a valid command
-
-        //     // If it's not enabled, return and log an event
-        //     // TODO: let the user know that they tried to use a disabled command
-        //     // non-null assertion: The code returns prior to this point if currentModule isn't set. This also applies for the rest of the function below
-        //     if (!currentModule!.enabled) {
-        //         eventLogger.logEvent(
-        //             {
-        //                 category: EventCategory.Warning,
-        //                 description: `Attempt made to use disabled command: ${commandUsed.join(" ")}`,
-        //                 location: "core",
-        //             },
-        //             2
-        //         );
-        //         return;
-        //     }
-
-        //     // If there are no submodules, execute the command and be on your merry way
-        //     if (currentModule!.submodules.length === 0) {
-        //         // TODO: wrap in try/catch and respond to user if attempt fails
-        //         // this may break if no arguments are passed to the command
-        //         currentModule!.executeCommand(tokens.join(" "), message);
-        //         return;
-        //     }
-
-        //     // if there are no tokens left and we've reached this point, there's still submodules.
-        //     // because a module's execution code is not executed if there's submodules, display help message and return
-        //     if (tokens.length === 0) {
-        //         // make a list of fields to use based off of commands and help strings
-        //         let helpFields: APIEmbedField[] = [];
-        //         for (let submod of currentModule!.submodules) {
-        //             helpFields.push({
-        //                 name: `\`commandUsed.join(" ")\`` + `\`${currentModule!.command}\``,
-        //                 value: `${submod.helpMessage} \n(${submod.submodules.length} subcommands)`,
-        //             });
-        //         }
-
-        //         message.reply({
-        //             embeds: [
-        //                 {
-        //                     title: "Invalid command usage. Subcommands for current command:",
-        //                     fields: helpFields,
-        //                     color: 0xff0000,
-        //                 },
-        //             ],
-        //         });
-        //         return;
-        //     }
-
-        //     // If there *are* submodules and tokens left, iterate until there ain't no submodules no more
-        //     // TODO: help message when user tries to use a command that doesn't exist
-        //     for (let mod of currentModule!.submodules) {
-        //         // because it's possible for
-        //         if (tokens[0].toLowerCase() === mod.command || mod.aliases.includes(tokens[0].toLowerCase())) {
-        //             currentModule = mod;
-
-        //             commandUsed.push(tokens.shift()!);
-        //             break;
-        //         }
-        //     }
-
-        //     // to reach this point, the user is not referencing a valid command, but presumably attempted to
-
-        //     // // make a list of fields to use based off of commands and help strings
-        //     // let helpFields: APIEmbedField[] = [];
-        //     // for (let submod of currentModule!.submodules) {
-        //     //     helpFields.push({
-        //     //         name: commandUsed.join(" ") + " " + currentModule!.command,
-        //     //         value: `\`${submod.helpMessage}\` \n(${submod.submodules.length} subcommands)`,
-        //     //     });
-        //     // }
-
-        //     // message.reply({
-        //     //     embeds: [
-        //     //         {
-        //     //             title: "Invalid command usage. Subcommands for current command:",
-        //     //             fields: helpFields,
-        //     //             color: 0xff0000,
-        //     //         },
-        //     //     ],
-        //     // });
-        //     // return;
-        // }
     });
 }
 
@@ -285,7 +156,7 @@ function listen() {
  * So if the user typed `foo bar baz`, and you want to generate a help message, you can make help strings
  * include the full command
  */
-function generateHelpMessageForModule(mod: Module, priorCommands: string = ""): APIEmbed {
+function generateHelpMessageForModule(mod: SubModule | RootModule, priorCommands: string = ""): APIEmbed {
     // make a list of fields to use  based off of commands and help strings
     // TODO: possibly make it exclude the subcommands bit if there are none, or change it to indicate
     // that it's a subcommand
@@ -310,15 +181,26 @@ function generateHelpMessageForModule(mod: Module, priorCommands: string = ""): 
 function initializeModules() {
     for (let mod of modules) {
         if (mod.enabled === true) {
-            mod.initialize();
             eventLogger.logEvent(
                 {
                     category: EventCategory.Info,
                     location: "core",
-                    description: `New module registered: ${mod.command}`,
+                    description: `Initializing module: ${mod.command}`,
                 },
                 3
             );
+            mod.initialize().catch(() => {
+                eventLogger.logEvent(
+                    {
+                        category: EventCategory.Error,
+                        location: "core",
+                        description: `Module \`${mod.command}\` ran into an error during initialization call. This module will be disabled`,
+                    },
+                    1
+                );
+            });
+        } else {
+            eventLogger.logEvent({category: EventCategory.Info, location: "core", description: "Encountered disabled module: " + mod.command}, 3)
         }
     }
 }

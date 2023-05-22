@@ -1,11 +1,18 @@
 import { EventCategory, eventLogger } from "./logger.js";
 import { botConfig } from "./config.js";
 import { APIEmbed, Message } from "discord.js";
+import Module from "module";
+
+// TODO: do https://www.typescriptlang.org/docs/handbook/2/objects.html
+interface ModuleConfig {
+    enabled: boolean;
+    [customProperties: string]: any;
+}
 
 /**
  * This allows extension of the bot's initial functionality. Almost all discord facing functionality should be implemented as a module
  */
-export class Module {
+class BaseModule {
     /**
      * The case insensitive name you want to use to trigger the command. If the command was `foo`, you could type the configured prefix, followed by foo
      */
@@ -22,21 +29,10 @@ export class Module {
     readonly helpMessage: string;
 
     /**
-     * Call this whenever you want to act on a command use.
+     * Call this whenever you want to act on a command use. If you're just developing the module, set this with `onCommandExecute()`, and
+     * the actual execution will be handled by the core.
      */
     executeCommand: (args: string | undefined, msg: Message) => Promise<void | APIEmbed> = async () => {};
-
-    /**
-     * If there are no submodules defined, this allows you to define what will be called whenever the command is used. It can either return nothing,
-     * or an embed that will be used to respond to the user. You don't need to make use of the response embed, it's there as a
-     * quality of life feature. If submodules are defined, a help message will be returned with help strings and usages for each
-     * subcommand
-     * @param functionToCall this function gets passed the args (everything past past the command usage),
-     * and a [message](https://discord.js.org/#/docs/discord.js/main/class/Message) handle
-     */
-    onCommandExecute(functionToCall: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>) {
-        this.executeCommand = functionToCall;
-    }
 
     /**
      * Whether or not the `initialize()` call was completed. If your initialization function never returns, you need to manually
@@ -51,36 +47,19 @@ export class Module {
     initialize: () => Promise<void> = async () => {};
 
     /**
-     * Set a function to call when first loading the module. If you want to have a module with daemon functionality, this would be one way to implement it
-     */
-    onInitialize(functionToInitializeWith: () => Promise<void>) {
-        this.initialize = functionToInitializeWith;
-    }
-    /**
      * Subcommands are referenced by typing the base command, then the subcommand. If a command has subcommands, then onCall should not be set,
      * because it will not be executed to prevent unintended behavior
      *
      * EG: if foo has `bar` and `baz` submodules, a call to `foo` will do nothing but return a help message
      */
-    submodules: Module[] = [];
-
-    /**
-     * Whether or not the command should be accessible. This is false by default, and will either automatically be set once a valid config is located (if root module)
-     */
-    enabled: boolean = false;
+    submodules: SubModule[] = [];
 
     /**
      * The config for the *root extension* specified in config.jsonc. The root extension is the first command in the chain,
      * where if you wanted to call `foo bar baz`, the root would be `foo`. This is set in the constructor automatically by specifying `rootModuleName`
      */
-    readonly config: NonNullable<any>;
-
-    /**
-     * Whatever the top level module for this module is named. If this is not a submodule, this value should be the same as `this.command`.
-     *
-     * If this is a submodule, it's `this.command`'s value for the default export module
-     */
-    rootModuleName: string;
+    // Definite assignment: This is either set in the constructor or by `registerSubmodule()`.
+    config!: ModuleConfig;
 
     /**
      *
@@ -92,50 +71,108 @@ export class Module {
     constructor(
         command: string,
         helpMessage: string,
-        onCommandExecute?: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>,
-        rootModuleName?: string
+        onCommandExecute?: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>
+        //       rootModuleName?: string
     ) {
         this.command = command;
         this.helpMessage = helpMessage;
-        // if root module was not defined, assume a root module is being created and set it to `this.command`.
-        if (rootModuleName) {
-            this.rootModuleName = rootModuleName;
-        } else {
-            this.rootModuleName = this.command;
-        }
-
+        // the default behavior for this is to do nothing
         if (this.onCommandExecute) {
             this.onCommandExecute(onCommandExecute!);
         }
-        // now that the correct location for the config has been verified, we can fetch that config. If it doesn't exist,
-        // the module will be disabled by default
-        if (this.rootModuleName in botConfig.modules) {
-            this.config = botConfig.modules[this.rootModuleName];
-            this.enabled = this.config.enabled;
-        } else {
-            this.enabled = false;
+    }
+
+    /**
+     * Set a function to call when first loading the module. If you want to have a module with daemon functionality, this would be one way to implement it
+     */
+    onInitialize(functionToInitializeWith: () => Promise<void>) {
+        this.initialize = functionToInitializeWith;
+    }
+
+    /**
+     * If there are no submodules defined, this allows you to define what will be called whenever the command is used. It can either return nothing,
+     * or an embed that will be used to respond to the user. You don't need to make use of the response embed, it's there as a
+     * quality of life feature. If submodules are defined, a help message will be returned with help strings and usages for each
+     * subcommand
+     * @param functionToCall this function gets passed the args (everything past past the command usage),
+     * and a [message](https://discord.js.org/#/docs/discord.js/main/class/Message) handle
+     */
+    onCommandExecute(functionToCall: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>) {
+        this.executeCommand = functionToCall;
+    }
+}
+
+export class RootModule extends BaseModule {
+    /**
+     * Whether or not the command should be accessible. This is false by default, and will be set via config once a config is located.
+     */
+    enabled: boolean = false;
+
+    constructor(
+        command: string,
+        helpMessage: string,
+        onCommandExecute?: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>
+    ) {
+        super(command, helpMessage, onCommandExecute);
+        if (onCommandExecute) {
+            this.onCommandExecute(onCommandExecute);
         }
+
+        if (this.command in botConfig.modules) {
+            this.config = botConfig.modules[this.command];
+            this.enabled = this.config.enabled
+        } else {
+            eventLogger.logEvent(
+                {
+                    category: EventCategory.Warning,
+                    location: "core",
+                    description:
+                        `No config option found for "${this.command}" in the config,` + `this module will be disabled.`,
+                },
+                1
+            );
+        }
+    }
+    /**
+     * Add a submodule to the current module
+     * @param submoduleToRegister Submodule you'd like to add to the current Module
+     */
+    registerSubModule(submoduleToRegister: SubModule) {
+        submoduleToRegister.rootModuleName = this.command;
+        this.submodules.push(submoduleToRegister);
+        // sort of a non-null assertion, but null checks happen for the root module, 
+        // and since all subcommands are disabled, we don't need to worry about initialization.
+        submoduleToRegister.config = this.config; 
+    }
+}
+
+export class SubModule extends BaseModule {
+    /**
+     * Whatever the top level module for this module is named. If this is not a submodule, this value should be the same as `this.command`.
+     *
+     * If this is a submodule, it's `this.command`'s value for the default export module
+     */
+    // Definite assignment: Submodules are attached via `registerSubModule()`, which sets this property.
+    // without that call, submodules are inaccessible
+    rootModuleName!: string;
+
+    constructor(
+        command: string,
+        helpMessage: string,
+        onCommandExecute?: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>
+    ) {
+        super(command, helpMessage, onCommandExecute);
     }
 
     /**
      * Add a submodule to the current module
      * @param submoduleToRegister Submodule you'd like to add to the current Module
      */
-    registerSubmodule(submoduleToRegister: Module) {
-        if (!(this.rootModuleName in botConfig.modules)) {
-            eventLogger.logEvent(
-                {
-                    category: EventCategory.Warning,
-                    location: "core",
-                    description:
-                        `No config found for "${this.rootModuleName}" when registering a new submodule, ` +
-                        `functionality and all submodules for ${this.rootModuleName} will be disabled.`,
-                },
-                1
-            );
-        }
+    registerSubmodule(submoduleToRegister: SubModule) {
         submoduleToRegister.rootModuleName = this.rootModuleName;
-        submoduleToRegister.enabled = this.enabled;
         this.submodules.push(submoduleToRegister);
+        // sort of a non-null assertion, but null checks happen for the root module, 
+        // and since all subcommands are disabled, we don't need to worry about initialization.
+        submoduleToRegister.config = this.config; 
     }
 }

@@ -101,7 +101,6 @@ class MessageRingBuffer {
      * Write a message into the buffer and advance the write cursor forwards, allocating more space if necessary
      */
     write(message: Message) {
-        // TODO: if write cursor has written an entire buffer's worth of data and hasn't been read yet, allocate more
         if (this.numValues == this.buf.length - 1) {
             this.expandBuffer(this.reallocationStepSize);
         }
@@ -159,7 +158,7 @@ class MessageRingBuffer {
         );
     }
 }
-let channelLogging = new util.Module("logging", "Manage discord channel and thread logging");
+let channelLogging = new util.RootModule("logging", "Manage discord channel and thread logging");
 
 channelLogging.onInitialize(async () => {
     /**
@@ -175,6 +174,7 @@ channelLogging.onInitialize(async () => {
     // non-null assertion: if the bot isn't in a server, than throwing an error can be considered reasonable behavior
     const guild = util.client.guilds.cache.first()!;
 
+    /** Where messages that haven't been processed yet are stored. */
     let mBuffer = new MessageRingBuffer(10);
     // when a message is sent, add it to the buffer
     util.client.on(Events.MessageCreate, (message) => {
@@ -188,6 +188,7 @@ channelLogging.onInitialize(async () => {
         // get the channel id, reference the channelmap to determine where the message needs to be logged
         // Non-null assertion: This code is only called when data is written to the buffer, thus ensuring we're handling non-null values
         const message: Message = (await mBuffer.read()) as Message;
+
         // Ignore all messages sent in channels not defined by the channel map
         if (!(message.channelId in channelLogging.config.channelMap)) return;
 
