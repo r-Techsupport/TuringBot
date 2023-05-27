@@ -1,24 +1,48 @@
 import { readdirSync } from "fs";
-import { APIEmbedField, Client, Events, GatewayIntentBits, Message, APIEmbed } from "discord.js";
+import { APIEmbedField, Client, Events, GatewayIntentBits, Message, APIEmbed, Guild } from "discord.js";
 
 import { botConfig } from "./config.js";
 import { EventCategory, eventLogger } from "./logger.js";
 import { RootModule, SubModule } from "./modules.js";
 import { quickEmbed } from "./discord.js";
-import { describe } from "node:test";
 
+/**https://discord.js.org/docs/packages/builders/stable/RoleSelectMenuBuilder:Class#/docs/discord.js/main/class/Client */
 export const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
 });
 
-botConfig.readConfigFromFileSystem();
+/**
+ * `GuildMember` is the server specific object for a `User`, so that's fetched
+ * to get info like nickname, and perform administrative tasks  on a user.
+ *
+ * `Guild` is the way to interact with server specific functionality.
+ *
+ * This makes the assumption that the bot is deployed to 1 guild.
+ *
+ * https://discord.js.org/#/docs/discord.js/main/class/Guild
+ */
+// non-null assertion: if the bot isn't in a server, than throwing an error can be considered reasonable behavior
+export let guild: Guild = botConfig.readConfigFromFileSystem();
 
 let modules: RootModule[] = [];
+
+// This allows catching and handling of async errors, which would normally fully error
+process.on("unhandledRejection", (error) => {
+    eventLogger.logEvent(
+        {
+            category: EventCategory.Error,
+            location: "core",
+            description: `An unhandled async error occurred: \`\`\`\`\n${error}\`\`\``,
+        },
+        1
+    );
+});
 
 // When the bot initializes a connection with the discord API
 client.once(Events.ClientReady, async (clientEvent) => {
     // let the logger know it's ok to try and start logging events in Discord
     eventLogger.discordInitialized = true;
+    guild = client.guilds.cache.first()!;
     eventLogger.logEvent(
         {
             category: EventCategory.Info,
@@ -127,7 +151,7 @@ function listen() {
         if (currentModule.submodules.length === 0) {
             // no submodules, it's safe to execute the command and return
             currentModule
-                .executeCommand(commandUsed.join(" "), message)
+                .executeCommand(tokens.join(" "), message)
                 .then((value: void | APIEmbed) => {
                     // enable modules to return an embed
                     if (value) {
@@ -136,7 +160,11 @@ function listen() {
                 })
                 .catch((err: Error) => {
                     message.reply({
-                        embeds: [quickEmbed.errorEmbed("Command returned an error:\n" + "```" + err + "```")],
+                        embeds: [
+                            quickEmbed.errorEmbed(
+                                "Command returned an error:\n" + "```" + err + "\n" + err.stack + "```"
+                            ),
+                        ],
                     });
                 });
             return;
@@ -171,7 +199,7 @@ function generateHelpMessageForModule(mod: SubModule | RootModule, priorCommands
     return {
         title: "Invalid command usage. Subcommands for current command:",
         fields: helpFields,
-        color: 0xff0000,
+        color: 0x2e8eea,
     };
 }
 
@@ -200,10 +228,17 @@ function initializeModules() {
                 );
             });
         } else {
-            eventLogger.logEvent({category: EventCategory.Info, location: "core", description: "Encountered disabled module: " + mod.command}, 3)
+            eventLogger.logEvent(
+                {
+                    category: EventCategory.Info,
+                    location: "core",
+                    description: "Encountered disabled module: " + mod.command,
+                },
+                3
+            );
         }
     }
 }
 
-//Login to discord
+// Login to discord
 client.login(botConfig.authToken);

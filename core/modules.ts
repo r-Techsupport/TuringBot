@@ -120,7 +120,7 @@ export class RootModule extends BaseModule {
 
         if (this.command in botConfig.modules) {
             this.config = botConfig.modules[this.command];
-            this.enabled = this.config.enabled
+            this.enabled = this.config.enabled;
         } else {
             eventLogger.logEvent(
                 {
@@ -140,9 +140,9 @@ export class RootModule extends BaseModule {
     registerSubModule(submoduleToRegister: SubModule) {
         submoduleToRegister.rootModuleName = this.command;
         this.submodules.push(submoduleToRegister);
-        // sort of a non-null assertion, but null checks happen for the root module, 
+        // sort of a non-null assertion, but null checks happen for the root module,
         // and since all subcommands are disabled, we don't need to worry about initialization.
-        submoduleToRegister.config = this.config; 
+        submoduleToRegister.config = this.config;
     }
 }
 
@@ -171,8 +171,8 @@ export class SubModule extends BaseModule {
     registerSubmodule(submoduleToRegister: SubModule) {
         submoduleToRegister.rootModuleName = this.rootModuleName;
         this.submodules.push(submoduleToRegister);
-        // sort of a non-null assertion, but null checks happen for the root module, 
+        // sort of a non-null assertion, but null checks happen for the root module,
         // and since all subcommands are disabled, we don't need to worry about initialization.
-        submoduleToRegister.config = this.config; 
+        submoduleToRegister.config = this.config;
     }
 }

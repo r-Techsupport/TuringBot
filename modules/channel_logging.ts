@@ -2,7 +2,24 @@
 This module provides discord logging, and is intended to log messages to a collection of logging channels. Because this requires 
 a comparatively very high level amount of processing compared to other tasks, this code should be *very* optimized
 */
-import { APIEmbed, Events, Guild, Message, MessageActionRowComponent, TextChannel } from "discord.js";
+import {
+    APIEmbed,
+    Events,
+    Guild,
+    Message,
+    MessageActionRowComponent,
+    TextChannel,
+    Channel,
+    CategoryChannel,
+    StringSelectMenuBuilder,
+    StringSelectMenuComponent,
+    StringSelectMenuOptionBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    Collector,
+    ComponentType,
+} from "discord.js";
 import * as util from "../core/util.js";
 
 /**
@@ -161,19 +178,6 @@ class MessageRingBuffer {
 let channelLogging = new util.RootModule("logging", "Manage discord channel and thread logging");
 
 channelLogging.onInitialize(async () => {
-    /**
-     * `GuildMember` is the server specific object for a `User`, so that's fetched
-     * to get info like nickname, and perform administrative tasks  on a user.
-     *
-     * `Guild` is the way to interact with server specific functionality.
-     *
-     * This makes the assumption that the bot is deployed to 1 guild.
-     *
-     * https://discord.js.org/#/docs/discord.js/main/class/Guild
-     */
-    // non-null assertion: if the bot isn't in a server, than throwing an error can be considered reasonable behavior
-    const guild = util.client.guilds.cache.first()!;
-
     /** Where messages that haven't been processed yet are stored. */
     let mBuffer = new MessageRingBuffer(10);
     // when a message is sent, add it to the buffer
@@ -210,7 +214,7 @@ channelLogging.onInitialize(async () => {
                         },
                         {
                             name: "Nickname",
-                            value: `${(await guild.members.fetch(message.author.id)).displayName}`,
+                            value: `${(await util.guild.members.fetch(message.author.id)).displayName}`,
                             inline: true,
                         },
                         {
@@ -231,5 +235,89 @@ channelLogging.onInitialize(async () => {
         });
     });
 });
+
+let populate = new util.SubModule(
+    "populate",
+    "Fill the channel map in the config, and automatically start logging. " +
+        "\nThis requires `loggingCategory` to be set. Takes a list of channel IDs that you don't want",
+    async (args, msg) => {
+        const loggingCategory = util.guild.channels.cache.get(populate.config.loggingCategory) as CategoryChannel;
+        // check to see if loggingCategory exists and references a valid category.
+        if (!loggingCategory) {
+            return util.quickEmbed.errorEmbed(
+                "`loggingCategory` in the config does not appear to point " + "to a valid category"
+            );
+        }
+        const loggingChannels = Array.from(loggingCategory.children.cache.keys());
+        // iterate over every text channel not in the logging category.
+        // text channels have a type of 0
+        let channels = util.guild.channels.cache.filter((ch: any) => ch.type === 0 && !(ch.id in loggingChannels));
+        /** This is sent to discord as a checklist, where the user can go through and select or deselect channels they want logged */
+        const channelSelector = new StringSelectMenuBuilder().setCustomId("populate");
+
+        // generate a list of all blacklisted channels
+        // blacklisted channels are disabled by default
+        let blacklistedChannels: string[] = populate.config.blacklistedChannels;
+        // blacklisted channels should be passed as channel ids, separated by a space
+        if (args) {
+            // possibly undefined: verified that args were passed first
+            for (let channel of args?.split(" ")) {
+                blacklistedChannels.push(channel);
+            }
+        }
+
+        for (const channel of channels) {
+            let isEnabled;
+            if (channel[1].id in blacklistedChannels) {
+                isEnabled = true;
+            } else {
+                isEnabled = false;
+            }
+
+            channelSelector.addOptions(
+                new StringSelectMenuOptionBuilder()
+                    .setLabel(`${channel[1].name} (${channel[1].id})`)
+                    .setValue(`${channel[1].id}`)
+                    // this is apparently required
+                    // (https://stackoverflow.com/questions/73302171/validationerror-s-string-expected-a-string-primitive-received-undefined)
+                    .setDescription(`${channel[1].name}-logging`)
+                    .setDefault(isEnabled)
+            );
+        }
+        channelSelector.setMaxValues(channels.size);
+
+        const confirmButton = new ButtonBuilder()
+            .setCustomId("popconfirm")
+            .setLabel("Log all channels (continue)")
+            .setStyle(ButtonStyle.Primary);
+
+        // send the menu
+        // The action menu is a 5x5 grid, a select menu takes up all 5 spots in a row, so a
+        // button needs to be moved to the next row
+        const channelSelectorActionRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(channelSelector);
+
+        const buttonActionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton);
+
+        const botResponse = await msg.reply({
+            content: "Select channels to exclude from logging:",
+            components: [channelSelectorActionRow, buttonActionRow],
+        });
+
+        // enable doing things when someone interacts with the channel selecion menu
+        // https://discordjs.guide/message-components/interactions.html#component-collectors
+        // time is in MS
+        let channelSelectListener = botResponse.createMessageComponentCollector({
+            componentType: ComponentType.StringSelect,
+            filter: (i) => msg.author.id === i.user.id,
+            time: 60_000,
+        });
+
+        channelSelectListener.on("collect", async (interaction) => {
+            console.log("channels: ", interaction.values);
+        });
+    }
+);
+
+channelLogging.registerSubModule(populate);
 
 export default channelLogging;
