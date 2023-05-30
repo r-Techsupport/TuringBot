@@ -82,7 +82,6 @@ class MessageRingBuffer {
      * - The last item is read from the buffer
      * - The buffer is larger than the initial set size (`initialBufferSize`)
      */
-    //TODO: annotate return types once I figure out if a message has a type
     async read(): Promise<Message | null> {
         if (this.numValues === 0) {
             return null;
@@ -255,7 +254,7 @@ let populate = new util.SubModule(
                 "`loggingCategory` in the config does not appear to point " + "to a valid category"
             );
         }
-        // while the type coersion is not strictly needed, I think it makes the code easier to understand
+        // while the type coercion is not strictly needed, I think it makes the code easier to understand
         let loggingChannels: TextChannel[] = Array.from(loggingCategory.children.cache.values()) as TextChannel[];
         // iterate over every text channel not in the logging category.
         // text channels have a type of 0
