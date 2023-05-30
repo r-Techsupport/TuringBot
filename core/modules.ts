@@ -1,3 +1,7 @@
+/*
+ * This file contains code for defining new modules and anything else directly related to the "module" side of development
+ */
+
 import { EventCategory, eventLogger } from "./logger.js";
 import { botConfig } from "./config.js";
 import { APIEmbed, Message } from "discord.js";
@@ -100,6 +104,9 @@ class BaseModule {
     onCommandExecute(functionToCall: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>) {
         this.executeCommand = functionToCall;
     }
+
+    // TODO: make use of botConfig.editConfigOption() and add a method to enable editing the local config for a module without specifying the absolute path.
+    // this could be thought of similar to `this.config` vs `botConfig.modules["$CONFIG_NAME"]` every time
 }
 
 export class RootModule extends BaseModule {

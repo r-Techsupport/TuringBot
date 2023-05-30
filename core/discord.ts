@@ -1,8 +1,25 @@
 /*
  * This file contains utilities and abstractions to make interacting with discord easier and more convenient.
  */
+import {
+    APIEmbed,
+    ActionRow,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ColorResolvable,
+    ComponentType,
+    Message,
+} from "discord.js";
 
-import { APIEmbed } from "discord.js";
+/**
+ * Used in pairing with `confirmEmbed()`, this is a way to indicate whether or not the user confirmed a choice, and is passed as
+ * the contents of the Promise returned by `confirmEmbed()`.
+ */
+export enum ConfirmEmbedResponse {
+    Confirmed = "confirmed",
+    Denied = "denied",
+}
 
 /**
  * Helper utilities used to speed up embed work
@@ -29,16 +46,74 @@ export const quickEmbed = {
     },
 
     /**
-     * A pre-formatted embed that should be used to indicate command failure
+     * A preformatted embed that should be used to indicate command failure
      */
     errorEmbed(errorText: string): APIEmbed {
         let responseEmbed: APIEmbed = {
             description: "❌ " + errorText,
-            color: 0xff0000,
+            color: 0xf92f60,
             footer: {
                 text: "Operation failed.",
             },
         };
         return responseEmbed;
+    },
+
+    successEmbed(successText: string): APIEmbed {
+        let responseEmbed: APIEmbed = {
+            color: 0x379c6f,
+            description: "✅ " + successText,
+        };
+        return responseEmbed;
+    },
+
+    infoEmbed(infoText: string): APIEmbed {
+        let responseEmbed: APIEmbed = {
+            color: 0x2e8eea,
+            description: infoText,
+        };
+        return responseEmbed;
+    },
+
+    /**
+     * This provides a graceful way to ask a user whether or not they want something to happen.
+     * @param prompt will be displayed in the embed
+     */
+    async confirmEmbed(prompt: string, message: Message, timeout: number = 60): Promise<ConfirmEmbedResponse> {
+        // https://discordjs.guide/message-components/action-rows.html
+        const confirm = new ButtonBuilder()
+            .setCustomId(ConfirmEmbedResponse.Confirmed)
+            .setLabel("Confirm")
+            .setStyle(ButtonStyle.Success);
+        const deny = new ButtonBuilder()
+            .setCustomId(ConfirmEmbedResponse.Denied)
+            .setLabel("Cancel")
+            .setStyle(ButtonStyle.Secondary);
+
+        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(confirm, deny);
+        // send the confirmation
+        const response = await message.reply({ embeds: [this.infoEmbed(prompt)], components: [actionRow] });
+        // listen for a button interaction
+        try {
+            const interaction = await response.awaitMessageComponent({
+                filter: (i) => i.user.id === message.author.id,
+                time: timeout * 1000,
+            });
+            response.delete();
+            // the custom id is set with the enum values, so we can pass that transparently without worrying about it being invalid
+            return interaction.customId as ConfirmEmbedResponse;
+        } catch {
+            // awaitMessageComponent throws an error when the timeout was reached, so this behavior assumes
+            // that no other errors were thrown
+            response.edit({
+                embeds: [this.errorEmbed("No interaction was made by the timeout limit, cancelling.")],
+                components: [],
+            });
+            // delete the embed after 15 seconds
+            setTimeout(() => {
+                response.delete();
+            }, 15_000);
+            return ConfirmEmbedResponse.Denied;
+        }
     },
 };

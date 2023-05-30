@@ -27,12 +27,12 @@ export let guild: Guild = botConfig.readConfigFromFileSystem();
 let modules: RootModule[] = [];
 
 // This allows catching and handling of async errors, which would normally fully error
-process.on("unhandledRejection", (error) => {
+process.on("unhandledRejection", (error: Error) => {
     eventLogger.logEvent(
         {
             category: EventCategory.Error,
             location: "core",
-            description: `An unhandled async error occurred: \`\`\`\`\n${error}\`\`\``,
+            description: `An unhandled async error occurred: \`\`\`\n${error}\n${error.stack}\`\`\``,
         },
         1
     );

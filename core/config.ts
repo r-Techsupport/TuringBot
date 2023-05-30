@@ -1,7 +1,8 @@
 /*
  * This file provides a simple interface to interact with config.jsonc, whether that be reading to or writing from it
  */
-import { readFileSync, readFile, writeFile } from "node:fs";
+import { writeFile, readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { parse as parseJSONC, modify, applyEdits, JSONPath, Segment } from "jsonc-parser";
 import { EventCategory, eventLogger } from "./logger.js";
 
@@ -73,7 +74,10 @@ export let botConfig: any = {
                     {
                         category: EventCategory.Error,
                         location: "core",
-                        description: "An attempt was made to edit a config value that doesn't exist, cancelling edit",
+                        description:
+                            "An attempt was made to edit a config value that doesn't exist(" +
+                            location.join(".") +
+                            "), cancelling edit",
                     },
                     1
                 );
@@ -84,25 +88,21 @@ export let botConfig: any = {
         this._set(location, newValue);
 
         // write changes to filesystem
-        await readFile(CONFIG_LOCATION, "utf8", async (err, file) => {
-            if (err) {
-                throw err;
-            }
-            const newConfig = applyEdits(
-                file,
-                modify(file, location, newValue, { formattingOptions: { insertSpaces: true, tabSize: 4 } })
-            );
+        let file = await readFile(CONFIG_LOCATION, "utf8");
 
-            await writeFile(CONFIG_LOCATION, newConfig, () => {
-                eventLogger.logEvent(
-                    {
-                        category: EventCategory.Info,
-                        location: "any",
-                        description: "`config.jsonc` changed and diff applied in memory",
-                    },
-                    2
-                );
-            });
-        });
+        const newConfig = applyEdits(
+            file,
+            modify(file, location, newValue, { formattingOptions: { insertSpaces: true, tabSize: 4 } })
+        );
+
+        await writeFile(CONFIG_LOCATION, newConfig);
+        eventLogger.logEvent(
+            {
+                category: EventCategory.Info,
+                location: "any",
+                description: location.join(".") + " in `config.jsonc` changed and diff applied in memory",
+            },
+            2
+        );
     },
 };

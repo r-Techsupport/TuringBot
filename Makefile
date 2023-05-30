@@ -4,7 +4,7 @@ prep:
 
 # Start the bot without typechecking, outside of docker
 start:
-	npx tsc
+	npx tsc --build --verbose
 	node --enable-source-maps ./target/core/main.js 
 
 # Build a docker container
