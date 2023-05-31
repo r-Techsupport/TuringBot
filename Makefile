@@ -7,8 +7,15 @@ start:
 	npx tsc --build --verbose
 	node --enable-source-maps ./target/core/main.js 
 
+
+
+# Compile the code, and start the bot with a profiler running.
+profile:
+	npx tsc
+	npx 0x ./target/core/main.js
+
 # Build a docker container
-build:
+dbuild:
 	docker build . -t arc/turingbot
 
 # Start a pre-existing docker container in daemon mode

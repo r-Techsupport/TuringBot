@@ -1,3 +1,4 @@
 node_modules
 config.jsonc
 target
+*.0x/
