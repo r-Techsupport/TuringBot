@@ -13,8 +13,8 @@ import {
 } from "discord.js";
 
 /**
- * Used in pairing with `confirmEmbed()`, this is a way to indicate whether or not the user confirmed a choice, and is passed as
- * the contents of the Promise returned by `confirmEmbed()`.
+ * Used in pairing with `{@link confirmEmbed()}`, this is a way to indicate whether or not the user confirmed a choice, and is passed as
+ * the contents of the Promise returned by `{@link confirmEmbed()}`.
  */
 export enum ConfirmEmbedResponse {
     Confirmed = "confirmed",
@@ -32,7 +32,7 @@ export const quickEmbed = {
      * @param displayText The text you'd like the embed to contain
      *
      * @param otherOptions Any custom changes you'd like to make to the embed.
-     * See https://discordjs.guide/popular-topics/embeds.html#using-an-embed-object for specific options
+     * @see {@link https://discordjs.guide/popular-topics/embeds.html#using-an-embed-object} for specific options
      *
      * @example
      * // Just the description set
@@ -77,7 +77,7 @@ export const quickEmbed = {
 
     /**
      * This provides a graceful way to ask a user whether or not they want something to happen.
-     * @param prompt will be displayed in the embed
+     * @param prompt will be displayed in the embed with the `description` field
      */
     async confirmEmbed(prompt: string, message: Message, timeout: number = 60): Promise<ConfirmEmbedResponse> {
         // https://discordjs.guide/message-components/action-rows.html

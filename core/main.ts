@@ -19,7 +19,7 @@ export const client = new Client({
  *
  * This makes the assumption that the bot is deployed to 1 guild.
  *
- * https://discord.js.org/#/docs/discord.js/main/class/Guild
+ * @see {@link https://discord.js.org/#/docs/discord.js/main/class/Guild}
  */
 // non-null assertion: if the bot isn't in a server, than throwing an error can be considered reasonable behavior
 export let guild: Guild = botConfig.readConfigFromFileSystem();

@@ -1,13 +1,11 @@
-/*
- * This file contains code for defining new modules and anything else directly related to the "module" side of development
- */
+// /*
+//  * This file contains code for defining new modules and anything else directly related to the "module" side of development
+//  */
 
 import { EventCategory, eventLogger } from "./logger.js";
 import { botConfig } from "./config.js";
 import { APIEmbed, Message } from "discord.js";
-import Module from "module";
 
-// TODO: do https://www.typescriptlang.org/docs/handbook/2/objects.html
 interface ModuleConfig {
     enabled: boolean;
     [customProperties: string]: any;
@@ -15,8 +13,12 @@ interface ModuleConfig {
 
 /**
  * This allows extension of the bot's initial functionality. Almost all discord facing functionality should be implemented as a module
+ * @param command The key phrase that references this module. There must be an extension config key matching this, or the module will be disabled.
+ * @param helpMessage This message will be referenced when building help embeds, and is displayed to the user.
+ * @param onCommandExecute
+ * @param rootModuleName
  */
-class BaseModule {
+export class BaseModule {
     /**
      * The case insensitive name you want to use to trigger the command. If the command was `foo`, you could type the configured prefix, followed by foo
      */
@@ -65,13 +67,7 @@ class BaseModule {
     // Definite assignment: This is either set in the constructor or by `registerSubmodule()`.
     config!: ModuleConfig;
 
-    /**
-     *
-     * @param command The key phrase that references this module. There must be an extension config key matching this, or the module will be disabled.
-     * @param helpMessage This message will be referenced when building help embeds, and is displayed to the user.
-     * @param onCommandExecute
-     * @param rootModuleName
-     */
+
     constructor(
         command: string,
         helpMessage: string,

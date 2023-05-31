@@ -13,7 +13,7 @@ const CONFIG_LOCATION = "./config.jsonc";
 
 /**
  * This is an object mirror of `config.jsonc`. You can load the config from the filesystem with `readConfigFromFileSystem()`.
- *
+ * @namespace
  */
 // The any type is needed because the json is written to this object at runtime
 export let botConfig: any = {
@@ -48,7 +48,7 @@ export let botConfig: any = {
      * writing those changes to the filesystem.
      *
      * Do not use this to fill out config options that you're too lazy to manually add to `config.default.jsonc`
-     *
+     * 
      * @param location The path to what you'd like to edit as an array, so `foo.bar.baz` becomes `["foo", "bar", "baz"]`
      *
      * @param newValue Whatever you want the new value of `location` to be
@@ -62,7 +62,7 @@ export let botConfig: any = {
      * or filesystem operations fail in any way (bad perms, whatever). Will return silently and
      * log an error if `location` does not point to a valid location in the config.
      */
-    async editConfigOption(location: JSONPath, newValue: any) {
+    async editConfigOption(location: JSONPath, newValue: any): Promise<void> {
         // iteratively determine whether or not the key that's being edited exists
         let currentPosition = this;
         for (let i in location) {

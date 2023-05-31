@@ -1,9 +1,9 @@
 {
     "source": {
-        "include": ["core", "README.md", "package.json"],
-        "includePattern": ".+\\.(j|t)s(doc|x)?$"
+        "includePattern": ".+\\.(j|t)s(doc|x)?$",
+        "include": ["core", "README.md", "package.json"]
     },
-    "plugins": ["plugins/markdown", "better-docs/component", "better-docs/typescript"],
+    "plugins": ["plugins/markdown", "better-docs/typescript"],
     "opts": {
         "encoding": "utf8",
         "readme": "./README.md",
@@ -15,8 +15,14 @@
             "default_theme": "dark"
         }
     },
+    "templates": {
+        "cleverLinks": true
+    },
     "markdown": {
         "hardwrap": false,
         "idInHeadings": true
+    },
+    "tags": {
+        "allowUnknownTags": ["optional"]
     }
 }
