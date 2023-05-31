@@ -1,3 +1,6 @@
+# https://stackoverflow.com/questions/3931741/why-does-make-think-the-target-is-up-to-date
+.PHONY: docs
+
 # Install NPM packages
 prep:
 	npm i
@@ -7,12 +10,14 @@ start:
 	npx tsc --build --verbose
 	node --enable-source-maps ./target/core/main.js 
 
-
-
 # Compile the code, and start the bot with a profiler running.
 profile:
 	npx tsc
-	npx 0x ./target/core/main.js
+	npx 0x -o --output-dir profile_results.0x ./target/core/main.js
+
+# Generate jsdoc documentation (https://github.com/ankitskvmdam/clean-jsdoc-theme-example)
+docs:
+	npx jsdoc --configure jsdoc.json --verbose
 
 # Build a docker container
 dbuild:

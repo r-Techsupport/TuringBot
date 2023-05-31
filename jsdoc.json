@@ -1,0 +1,22 @@
+{
+    "source": {
+        "include": ["core", "README.md", "package.json"],
+        "includePattern": ".+\\.(j|t)s(doc|x)?$"
+    },
+    "plugins": ["plugins/markdown", "better-docs/component", "better-docs/typescript"],
+    "opts": {
+        "encoding": "utf8",
+        "readme": "./README.md",
+        "destination": "docs/jsdoc/",
+        "recurse": true,
+        "verbose": true,
+        "template": "./node_modules/clean-jsdoc-theme",
+        "theme_opts": {
+            "default_theme": "dark"
+        }
+    },
+    "markdown": {
+        "hardwrap": false,
+        "idInHeadings": true
+    }
+}

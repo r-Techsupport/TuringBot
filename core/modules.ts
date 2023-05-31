@@ -109,6 +109,10 @@ class BaseModule {
     // this could be thought of similar to `this.config` vs `botConfig.modules["$CONFIG_NAME"]` every time
 }
 
+/**
+ * This is meant to be the top level module. It exists because some things are grouped by the root module,
+ *  and not every module, EG: whether or not a module is enabled or disabled, or the config for a module
+ */
 export class RootModule extends BaseModule {
     /**
      * Whether or not the command should be accessible. This is false by default, and will be set via config once a config is located.

@@ -19,9 +19,12 @@
     "dependencies": {
         "@types/node": "^18.15.11",
         "0x": "^5.5.0",
+        "better-docs": "^2.7.2",
         "bufferutil": "^4.0.7",
         "chalk": "^4.1.2",
+        "clean-jsdoc-theme": "^4.2.7",
         "discord.js": "^14.11.0",
+        "jsdoc": "^4.0.2",
         "jsonc-parser": "^3.2.0",
         "node": "^19.8.1",
         "ts-node": "^10.9.1",
