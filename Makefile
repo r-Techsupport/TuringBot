@@ -19,18 +19,24 @@ profile:
 docs:
 	npx jsdoc --configure jsdoc.json --verbose
 
-# Build a docker container
-dbuild:
-	docker build . -t arc/turingbot
+# Build JSDOC documentation, create an nginx docker container, and start the docker container
+# (on port 8080)
+docker-docs: docs
+	docker build -t turingdocs .
+	docker run -d -p 8080:80 --name turingdocs turingdocs
+
+
+# Build a docker container us
+docker-build:
+	docker build . -t turingbot
 
 # Start a pre-existing docker container in daemon mode
-dstart:
-	docker run -d arc/turingbot
+docker-start:
+	docker run -d turingbot turingbot
 
-# Make a docker container and start it in daemon mode
-drun:
-	docker build . -t arc/turingbot
-	docker run -d arc/turingbot
+# Make a bot docker container and start it in daemon mode
+docker-run: docker-build
+	make docker-start
 
 # Format whole project
 format:
