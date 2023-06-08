@@ -48,7 +48,7 @@ export let botConfig: any = {
      * writing those changes to the filesystem.
      *
      * Do not use this to fill out config options that you're too lazy to manually add to `config.default.jsonc`
-     * 
+     *
      * @param location The path to what you'd like to edit as an array, so `foo.bar.baz` becomes `["foo", "bar", "baz"]`
      *
      * @param newValue Whatever you want the new value of `location` to be

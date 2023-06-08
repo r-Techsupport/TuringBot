@@ -5,7 +5,7 @@ import { botConfig } from "./config.js";
 import { EventCategory, eventLogger } from "./logger.js";
 import { RootModule, SubModule } from "./modules.js";
 import { quickEmbed } from "./discord.js";
-// TODO: re-organize the core to take advantage of typescript namespaces (https://www.typescriptlang.org/docs/handbook/namespaces.html). 
+// TODO: re-organize the core to take advantage of typescript namespaces (https://www.typescriptlang.org/docs/handbook/namespaces.html).
 
 /**@see {@link https://discord.js.org/docs/packages/builders/stable/RoleSelectMenuBuilder:Class#/docs/discord.js/main/class/Client }*/
 export const client = new Client({

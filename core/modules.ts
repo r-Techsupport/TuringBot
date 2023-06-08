@@ -5,6 +5,7 @@
 import { EventCategory, eventLogger } from "./logger.js";
 import { botConfig } from "./config.js";
 import { APIEmbed, Message } from "discord.js";
+import { eventNames } from "process";
 
 interface ModuleConfig {
     enabled: boolean;
@@ -67,7 +68,6 @@ export class BaseModule {
     // Definite assignment: This is either set in the constructor or by `registerSubmodule()`.
     config!: ModuleConfig;
 
-
     constructor(
         command: string,
         helpMessage: string,
@@ -82,12 +82,6 @@ export class BaseModule {
         }
     }
 
-    /**
-     * Set a function to call when first loading the module. If you want to have a module with daemon functionality, this would be one way to implement it
-     */
-    onInitialize(functionToInitializeWith: () => Promise<void>) {
-        this.initialize = functionToInitializeWith;
-    }
 
     /**
      * If there are no submodules defined, this allows you to define what will be called whenever the command is used. It can either return nothing,
@@ -140,6 +134,14 @@ export class RootModule extends BaseModule {
             );
         }
     }
+
+    /**
+     * Set a function to call when first loading the module. If you want to have a module with daemon functionality, this would be one way to implement it
+     */
+    onInitialize(functionToInitializeWith: () => Promise<void>) {
+        this.initialize = functionToInitializeWith;
+    }
+
     /**
      * Add a submodule to the current module
      * @param submoduleToRegister Submodule you'd like to add to the current Module
@@ -153,6 +155,9 @@ export class RootModule extends BaseModule {
     }
 }
 
+/**
+ * This class can be used to add submodules to a submodule or root module, like a subcommand.
+ */
 export class SubModule extends BaseModule {
     /**
      * Whatever the top level module for this module is named. If this is not a submodule, this value should be the same as `this.command`.
@@ -181,5 +186,101 @@ export class SubModule extends BaseModule {
         // sort of a non-null assertion, but null checks happen for the root module,
         // and since all subcommands are disabled, we don't need to worry about initialization.
         submoduleToRegister.config = this.config;
+    }
+}
+
+/**
+ * The `Dependency` class is meant to provide an elegant way to have "safe" resource access. These resources can be of any type.
+ * From strings to objects, you define what you want the dependency's value to be, and it'll be wrapped in easy to use ways to
+ * access the value, or check the status of the value (not yet resolved, resolution failed, resolution succeeded)
+ * You're probably looking for {@link resolve()}
+ * ADR 01 contains a bit more rambling on the topic if you want more
+ */
+export class Dependency {
+    /**
+     * The actual "thing" this whole class is talking about. If the dependency is an API key,
+     *  then this might be a string containing that API key. If it's a database connection, it may
+     * be the client provided by a wrapper library over the API
+     * (for example, the [MongoDB client](https://mongodb.github.io/node-mongodb-native/api-generated/mongoclient.html)).
+     *
+     * This is marked private because we don't want people to directly try to read from the value, because
+     * then it won't go through all of the robust checks and such. To access this value,
+     * use exposed methods like {@link resolve()}
+     *
+     * The resting state of this value is `null`. This means that no attempt has been made to resolve
+     * this dependency.
+     *
+     * If this value is an error, then an attempt was made to get the resource, but it failed.
+     *
+     * Otherwise, this is the resource. The resource was already fetched
+     */
+    private value: null | Error | NonNullable<any> = null;
+
+    /**
+     *
+     * @param name this value is displayed in error/info/status messages, and should be a short, descriptive term
+     * that describes the resource. a good name may be `mongodb` or `google api key`, where a bad name
+     * might be `api key`, or `con`.
+     * @param attemptResolution This is a developer defined method that tries to resolve the resolution, and return it.
+     * This is set and called by {@link resolve()}, but it's called with some extra thorough handling
+     * and other stuff that means it should not be called directly. If you realize the resource cannot be retrieved,
+     * `throw` an `Error`.
+     *
+     */
+    constructor(public name: string, private attemptResolution: <T>() => Promise<T> | Error) {}
+
+    /**
+     * If an attempt hasn't already been made to resolve this dependency, then try to resolve it.
+     * If an attempt has already been made, than it will use whatever was resolved by the first
+     * resolution attempt.
+     * @returns  This function will return either: The value/result/whatever you want to call it
+     * of the dependency, or `null`.
+     */
+    async resolve<T>(): Promise<T | null> {
+        // if the value is not null, and not an error, then this dependency has already
+        // been resolved.
+        // see https://stackoverflow.com/questions/30469261/checking-for-typeof-error-in-js
+        if (this.value !== null && !this.failed()) {
+            return this.value;
+        }
+
+        // If there is an error stored, explicitly return `null`.
+        // funnily enough, when this value is null, you don't want
+        // to return null
+        // Ideally, the inside of the module should *never* come into contact with
+        // this null value, the module execution code should never be called at all
+        if (this.value instanceof Error) {
+            return null;
+        }
+        // if this.value is null no attempt has been made to resolve the value,
+        // so try to do that
+        try {
+            this.value = await this.attemptResolution();
+            eventLogger.logEvent(
+                {
+                    category: EventCategory.Info,
+                    location: "core",
+                    description: "Successfully resolved dependency: " + this.name,
+                },
+                3
+            );
+            return this.value;
+        } catch (err) {
+            this.value = err;
+            // making the assumption that the code failing would return an instance of Error,
+            // or the dev read the docs and returned an instance of Error
+            return null;
+        }
+    }
+    
+    /**
+     * Check to see if resolution failed for this dependency.
+     */
+    failed(): Boolean {
+        if (this.value instanceof Error) {
+            return true;
+        } else {
+            return false;
+        }
     }
 }
