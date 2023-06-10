@@ -1,0 +1,52 @@
+# This yaml file contains Service (network/group of pods) and Deployment (instructions on how to start/update the service) definitions for a development environment
+# https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/
+apiVersion: v1
+kind: Service
+metadata:
+    name: turingbot-dev
+    labels:
+        app: turingbot-dev
+spec:
+    type: LoadBalancer
+    ports:
+        - port: 80
+          name: http
+        - port: 443
+          name: https
+    selector:
+        app: turingbot
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: turingbot-dev
+    labels:
+        app: turingbot-dev
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: turingbot-dev
+    template:
+        metadata:
+            labels:
+                app: turingbot-dev
+        spec:
+            containers:
+                - name: turingbot
+                  image: turingbot
+                  ports:
+                      - containerPort: 80
+                      - containerPort: 443
+                  imagePullPolicy: Never
+
+                - name: mongodb
+                  image: mongo
+                  ports:
+                      - containerPort: 27017
+                  env:
+                      - name: MONGO_INITDB_ROOT_USERNAME
+                        value: root
+                      - name: MONGO_INITDB_ROOT_PASSWORD
+                        value: root

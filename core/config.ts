@@ -1,4 +1,5 @@
-/*
+/**
+ * @file
  * This file provides a simple interface to interact with config.jsonc, whether that be reading to or writing from it
  */
 import { writeFile, readFile } from "node:fs/promises";

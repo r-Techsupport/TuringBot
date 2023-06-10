@@ -1,4 +1,5 @@
-/*
+/**
+ * @file
  * This file contains utilities and abstractions to make interacting with discord easier and more convenient.
  */
 import {

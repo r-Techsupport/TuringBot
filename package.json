@@ -26,6 +26,7 @@
         "discord.js": "^14.11.0",
         "jsdoc": "^4.0.2",
         "jsonc-parser": "^3.2.0",
+        "mongodb": "^5.6.0",
         "node": "^19.8.1",
         "ts-node": "^10.9.1",
         "typescript": "^5.0.2",

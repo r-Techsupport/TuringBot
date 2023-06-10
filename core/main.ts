@@ -5,6 +5,8 @@ import { botConfig } from "./config.js";
 import { EventCategory, eventLogger } from "./logger.js";
 import { RootModule, SubModule } from "./modules.js";
 import { quickEmbed } from "./discord.js";
+import { deprecate } from "util";
+
 // TODO: re-organize the core to take advantage of typescript namespaces (https://www.typescriptlang.org/docs/handbook/namespaces.html).
 
 /**@see {@link https://discord.js.org/docs/packages/builders/stable/RoleSelectMenuBuilder:Class#/docs/discord.js/main/class/Client }*/
@@ -39,6 +41,7 @@ process.on("unhandledRejection", (error: Error) => {
     );
 });
 
+
 // When the bot initializes a connection with the discord API
 client.once(Events.ClientReady, async (clientEvent) => {
     // let the logger know it's ok to try and start logging events in Discord
@@ -61,8 +64,16 @@ client.once(Events.ClientReady, async (clientEvent) => {
         if (!file.endsWith(".map")) {
             // get the default import from each file and add it to the array of modules
             // dynamic imports import relative to the path of the file being run
-            let mod = await import("../modules/" + file);
-            modules.push(mod.default);
+            let fileExport = await import("../modules/" + file);
+            // to allow multiple module exports from the same file, if they exported an array, then iterate over it
+            if (fileExport.default.isArray()) {
+                for (const module of fileExport.default) {
+                    modules.push(module)
+                }
+            } else {
+                // there's only one module
+                modules.push(fileExport.default);
+            }
         }
     }
 
@@ -126,6 +137,7 @@ function listen() {
         // this code will resolve currentModule to the last valid module in the list of tokens,
         // removing the first token and adding it to
         while (tokens.length > 0) {
+            // lowercase version of the token used for module resolution
             const token = tokens[0].toLowerCase();
             // first check to see if the first token in the list references a module or any of its aliases
             for (const mod of currentModule.submodules) {
@@ -133,7 +145,8 @@ function listen() {
                     currentModule = mod;
                     // remove the first token from tokens
                     // non-null assertion: this code is only reachable if tokens[0] is set
-                    // `token` is not used here because it doesn't match the command used casewise, and was just defined for comparison purposes
+                    // the first element in the tokens array is used over `token` because the array preserves case,
+                    // while `token` does not
                     commandUsed.push(tokens.shift()!);
                     continue;
                 }
@@ -151,6 +164,16 @@ function listen() {
          */
         if (currentModule.submodules.length === 0) {
             // no submodules, it's safe to execute the command and return
+            // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
+            for (const dep of currentModule.dependencies) {
+                const depResult = await dep.resolve()
+                // .resolve() returns null if resolution failed
+                if (!depResult) {
+                    message.reply({embeds: [quickEmbed.errorEmbed(`Unable to execute command because dependency: ${dep.name} could not be resolved`)]});
+                    return;
+                }
+
+            }
             currentModule
                 .executeCommand(tokens.join(" "), message)
                 .then((value: void | APIEmbed) => {

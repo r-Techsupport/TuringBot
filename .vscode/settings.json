@@ -1,4 +1,13 @@
 {
     "files.eol": "\n",
-    "cSpell.words": ["channelmap", "loggingchannel", "popconfirm", "readcursor", "ringbuffer", "unlogged"]
+    "cSpell.words": [
+        "channelmap",
+        "loggingchannel",
+        "popconfirm",
+        "readcursor",
+        "ringbuffer",
+        "submod",
+        "turingbot",
+        "unlogged"
+    ]
 }

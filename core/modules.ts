@@ -1,6 +1,7 @@
-// /*
-//  * This file contains code for defining new modules and anything else directly related to the "module" side of development
-//  */
+/**
+ * @file
+ * This file contains code for defining new modules and anything else directly related to the "module" side of development
+ */
 
 import { EventCategory, eventLogger } from "./logger.js";
 import { botConfig } from "./config.js";
@@ -34,6 +35,11 @@ export class BaseModule {
      * This message will be displayed when the `help` utility is called, and when a command that has subcommands is referenced
      */
     readonly helpMessage: string;
+
+    /**
+     * 
+     */
+    readonly dependencies: Dependency[];
 
     /**
      * Call this whenever you want to act on a command use. If you're just developing the module, set this with `onCommandExecute()`, and
@@ -71,17 +77,18 @@ export class BaseModule {
     constructor(
         command: string,
         helpMessage: string,
+        dependencies: Dependency[],
         onCommandExecute?: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>
         //       rootModuleName?: string
     ) {
         this.command = command;
         this.helpMessage = helpMessage;
+        this.dependencies = dependencies;
         // the default behavior for this is to do nothing
         if (this.onCommandExecute) {
             this.onCommandExecute(onCommandExecute!);
         }
     }
-
 
     /**
      * If there are no submodules defined, this allows you to define what will be called whenever the command is used. It can either return nothing,
@@ -109,12 +116,14 @@ export class RootModule extends BaseModule {
      */
     enabled: boolean = false;
 
+    // TODO: docstrings
     constructor(
         command: string,
         helpMessage: string,
+        dependencies: Dependency[],
         onCommandExecute?: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>
     ) {
-        super(command, helpMessage, onCommandExecute);
+        super(command, helpMessage, dependencies, onCommandExecute);
         if (onCommandExecute) {
             this.onCommandExecute(onCommandExecute);
         }
@@ -152,6 +161,7 @@ export class RootModule extends BaseModule {
         // sort of a non-null assertion, but null checks happen for the root module,
         // and since all subcommands are disabled, we don't need to worry about initialization.
         submoduleToRegister.config = this.config;
+        // also, pass dependencies down the line
     }
 }
 
@@ -171,9 +181,10 @@ export class SubModule extends BaseModule {
     constructor(
         command: string,
         helpMessage: string,
+        dependencies: Dependency[],
         onCommandExecute?: (args: string | undefined, msg: Message) => Promise<void | APIEmbed>
     ) {
-        super(command, helpMessage, onCommandExecute);
+        super(command, helpMessage, dependencies, onCommandExecute);
     }
 
     /**
@@ -193,7 +204,9 @@ export class SubModule extends BaseModule {
  * The `Dependency` class is meant to provide an elegant way to have "safe" resource access. These resources can be of any type.
  * From strings to objects, you define what you want the dependency's value to be, and it'll be wrapped in easy to use ways to
  * access the value, or check the status of the value (not yet resolved, resolution failed, resolution succeeded)
- * You're probably looking for {@link resolve()}
+ *
+ * You're probably looking for {@link resolve()} for accessing the value
+ *
  * ADR 01 contains a bit more rambling on the topic if you want more
  */
 export class Dependency {
@@ -227,7 +240,7 @@ export class Dependency {
      * `throw` an `Error`.
      *
      */
-    constructor(public name: string, private attemptResolution: <T>() => Promise<T> | Error) {}
+    constructor(public name: string, private attemptResolution: () => Promise<any>) {}
 
     /**
      * If an attempt hasn't already been made to resolve this dependency, then try to resolve it.
@@ -236,7 +249,7 @@ export class Dependency {
      * @returns  This function will return either: The value/result/whatever you want to call it
      * of the dependency, or `null`.
      */
-    async resolve<T>(): Promise<T | null> {
+    async resolve(): Promise<any> {
         // if the value is not null, and not an error, then this dependency has already
         // been resolved.
         // see https://stackoverflow.com/questions/30469261/checking-for-typeof-error-in-js
@@ -255,7 +268,8 @@ export class Dependency {
         // if this.value is null no attempt has been made to resolve the value,
         // so try to do that
         try {
-            this.value = await this.attemptResolution();
+            let resolutionResult = await this.attemptResolution();
+            this.value = resolutionResult;
             eventLogger.logEvent(
                 {
                     category: EventCategory.Info,
@@ -267,17 +281,30 @@ export class Dependency {
             return this.value;
         } catch (err) {
             this.value = err;
+            eventLogger.logEvent({"category": EventCategory.Warning, location: "core", description: `Failed to resolve dependency ${this.name}, ` +
+            `anything makes use of that dependency will not be available`}, 2)
             // making the assumption that the code failing would return an instance of Error,
-            // or the dev read the docs and returned an instance of Error
+            // or the dev read the docs and returned an instance of Error if a dep was unreachable
             return null;
         }
     }
-    
+
     /**
      * Check to see if resolution failed for this dependency.
      */
     failed(): Boolean {
         if (this.value instanceof Error) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Check to see if an attempt has been made to resolve this dependency
+     */
+    resolutionAttempted(): Boolean {
+        if (this.value !== null) {
             return true;
         } else {
             return false;

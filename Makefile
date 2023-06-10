@@ -22,7 +22,7 @@ docs:
 # Build JSDOC documentation, create an nginx docker container, and start the docker container
 # (on port 8080)
 docker-docs: docs
-	docker build -t turingdocs .
+	docker build -t turingdocs ./docs/
 	docker run -d -p 8080:80 --name turingdocs turingdocs
 
 

@@ -1,4 +1,5 @@
-/*
+/**
+ * @file
  * This file contains the code for the EventLogger class. It will be used to log system events, with configuration support for various levels of verbosity.
  */
 
