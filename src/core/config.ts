@@ -38,7 +38,12 @@ export const botConfig: any = {
 
   // https://stackoverflow.com/questions/18936915/dynamically-set-property-of-nested-object
   // used to modify a part of the config in memory
+  // eslint disable: We want the config value to be set to *anything*
+  // this is not just lazy typing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   _set(path: JSONPath, value: any) {
+    // eslint disable: this is set to abuse javascript references
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let schema = this; // a moving reference to internal objects within obj
     for (let i = 0; i < path.length - 1; i++) {
       const elem = path[i];
@@ -68,6 +73,7 @@ export const botConfig: any = {
    * or filesystem operations fail in any way (bad perms, whatever). Will return silently and
    * log an error if `location` does not point to a valid location in the config.
    */
+  // eslint-ignore-next-line @typescript-eslint/no-explicit-any
   async editConfigOption(location: JSONPath, newValue: any): Promise<void> {
     // iteratively determine whether or not the key that's being edited exists
     let currentPosition = this;

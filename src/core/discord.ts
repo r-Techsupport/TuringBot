@@ -4,12 +4,9 @@
  */
 import {
   APIEmbed,
-  ActionRow,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  ColorResolvable,
-  ComponentType,
   Message,
 } from 'discord.js';
 
