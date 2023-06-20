@@ -47,9 +47,8 @@ docker-run: docker-build
 
 # Format whole project
 format:
-# -w indicates that we want to write the formatting changes
-	npx prettier -w .
+# https://github.com/google/gts
+	npx gts fix
 
-# Check formatting for the whole project
-check-formatting:
-	npx prettier -c .
+lint:
+	npx gts lint

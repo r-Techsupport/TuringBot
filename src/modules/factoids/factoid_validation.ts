@@ -4,7 +4,7 @@
  * with factoids.
  */
 
-import { APIEmbed, BaseMessageOptions } from 'discord.js'
+import {APIEmbed, BaseMessageOptions} from 'discord.js';
 
 // TODO: fill all this out
 // most of these were picked from the limits list on the discord.js page,
@@ -33,7 +33,7 @@ export enum EmbedIssue {
   FieldsLength = '.fields contains more than the maximum allowed amount (25 fields)',
   FieldNameLength = '`.name` length is over the maximum allowed length for a field name (256 chars)',
   FieldValueLength = '`.value` length is over the maximum allowed for a field value (1024 chars)',
-  FooterLength = '`.footer` length is over the maximum allowed for a footer (2048 chars)'
+  FooterLength = '`.footer` length is over the maximum allowed for a footer (2048 chars)',
 }
 
 /**
@@ -49,63 +49,69 @@ export enum EmbedIssue {
  * you need to iterate over all yielded things, but that can be done with a while loop nested in try/catch
  */
 // TODO: look into supporting link buttons (https://discord.com/developers/docs/interactions/message-components)
-export function * validateMessage (messageToValidate: string): Generator<string[]> {
+export function* validateMessage(
+  messageToValidate: string
+): Generator<string[]> {
   // it's primarily a list of message issues, but some issues won't necessarily conform to
   // an enum
-  const issues: MessageIssue | string[] = []
-  let message: BaseMessageOptions
+  const issues: MessageIssue | string[] = [];
+  let message: BaseMessageOptions;
   // it must be a valid json
   try {
-    message = JSON.parse(messageToValidate)
+    message = JSON.parse(messageToValidate);
   } catch {
-    issues.push(MessageIssue.InvalidJson)
-    return issues
+    issues.push(MessageIssue.InvalidJson);
+    return issues;
   }
 
   // https://discord.js.org/#/docs/discord.js/main/typedef/BaseMessageOptions
   // content must be string or null/undefined
   if ('content' in message && typeof message.content !== 'string') {
-    issues.push(MessageIssue.ContentType)
-    yield issues
+    issues.push(MessageIssue.ContentType);
+    yield issues;
   }
 
   // if content is defined, it must be under 2000 chars
   // non-null assertion: check made to ensure the content key is defined
   if ('content' in message && message.content!.length > 2000) {
-    issues.push(MessageIssue.ContentLength)
-    yield issues
+    issues.push(MessageIssue.ContentLength);
+    yield issues;
   }
 
   // if embeds is defined, it needs to be an array
   if ('embeds' in message && !Array.isArray(message.embeds)) {
-    issues.push(MessageIssue.EmbedsType)
-    yield issues
+    issues.push(MessageIssue.EmbedsType);
+    yield issues;
   }
 
   // embed validation
   if ('embeds' in message) {
     for (const i in message.embeds!) {
-      let embedIssues: string[] = []
+      let embedIssues: string[] = [];
       try {
-        for (const foundIssues of validateEmbed(message.embeds[i] as APIEmbed)) {
-          embedIssues = foundIssues
+        for (const foundIssues of validateEmbed(
+          message.embeds[i] as APIEmbed
+        )) {
+          embedIssues = foundIssues;
         }
       } catch (err) {
         embedIssues.push(
           ' Validation did not complete, and errored early with: ' + err
-        )
+        );
       }
       // go through and indicate which embed is bad
-      embedIssues = embedIssues.map(embedIssue => `embedIssues[${i}]` + embedIssue)
+      embedIssues = embedIssues.map(
+        embedIssue => `embedIssues[${i}]` + embedIssue
+      );
     }
   }
 
   if ('files' in message && !Array.isArray(message.files)) {
-    issues.push(MessageIssue.FilesType)
-    yield issues
+    issues.push(MessageIssue.FilesType);
+    yield issues;
   }
 
-  yield issues
+  yield issues;
 }
 
 /** Similar to {@link validateMessage()}, this does some basic checks and attempts to ensure that the object passed is a valid APIEmbed.
@@ -114,27 +120,27 @@ export function * validateMessage (messageToValidate: string): Generator<string[
  * This is implemented as a generator to prevent a severely malformed object from stopping any results from being returned
  *
  * @returns A list of issues found with the embed
-*/
+ */
 // for the record, this function was miserable to write, and it will never ever be done because
 // you need to come up with every way someone could do this wrong
-function * validateEmbed (embed: APIEmbed): Generator<string[]> {
-  const issues: EmbedIssue | string[] = []
+function* validateEmbed(embed: APIEmbed): Generator<string[]> {
+  const issues: EmbedIssue | string[] = [];
 
   // title is over length
   if ('title' in embed && embed.title!.length > 256) {
-    issues.push(EmbedIssue.TitleLength)
-    yield issues
+    issues.push(EmbedIssue.TitleLength);
+    yield issues;
   }
 
   // description is over max length
   if ('description' in embed && embed.description!.length > 4096) {
-    issues.push(EmbedIssue.DescriptionLength)
-    yield issues
+    issues.push(EmbedIssue.DescriptionLength);
+    yield issues;
   }
 
   // there can only be 25 fields
   if ('fields' in embed && embed.fields!.length > 25) {
-    issues.push(EmbedIssue.FieldsLength)
+    issues.push(EmbedIssue.FieldsLength);
   }
 
   // iterate over each field and make sure the name and value are within size limits
@@ -142,18 +148,14 @@ function * validateEmbed (embed: APIEmbed): Generator<string[]> {
     for (const i in embed.fields!) {
       // name must be under 256 chars
       if (embed.fields[i].name.length > 256) {
-        issues.push(
-                    `.fields[${i}]` + EmbedIssue.FieldNameLength
-        )
-        yield issues
+        issues.push(`.fields[${i}]` + EmbedIssue.FieldNameLength);
+        yield issues;
       }
 
       // value must be under 1024
       if (embed.fields[i].value.length > 1024) {
-        issues.push(
-                    `.fields[${i}]` + EmbedIssue.FieldValueLength
-        )
-        yield issues
+        issues.push(`.fields[${i}]` + EmbedIssue.FieldValueLength);
+        yield issues;
       }
     }
   }
@@ -161,9 +163,9 @@ function * validateEmbed (embed: APIEmbed): Generator<string[]> {
   // footer must be under 2048 chars
   // should probably validate that the footer is properly formed
   if ('footer' in embed && embed.footer!.text.length > 2048) {
-    issues.push(EmbedIssue.FooterLength)
-    yield issues
+    issues.push(EmbedIssue.FooterLength);
+    yield issues;
   }
 
-  yield issues
+  yield issues;
 }

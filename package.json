@@ -1,41 +1,44 @@
 {
-    "version": "0.1.0",
-    "main": "./core/main.ts",
-    "type": "module",
-    "directories": {
-        "test": "tests"
-    },
-    "prettier": {
-        "printWidth": 120,
-        "trailingComma": "es5",
-        "tabWidth": 4,
-        "semi": true,
-        "singleQuote": false,
-        "endOfLine": "lf"
-    },
-    "scripts": {
-        "test": "echo \"Error: no test specified\" exit 1"
-    },
-    "dependencies": {
-        "@types/node": "^18.15.11",
-        "0x": "^5.5.0",
-        "better-docs": "^2.7.2",
-        "bufferutil": "^4.0.7",
-        "chalk": "^4.1.2",
-        "clean-jsdoc-theme": "^4.2.7",
-        "discord.js": "^14.11.0",
-        "jsdoc": "^4.0.2",
-        "jsonc-parser": "^3.2.0",
-        "mongodb": "^5.6.0",
-        "node": "^19.8.1",
-        "ts-node": "^10.9.1",
-        "typescript": "^5.0.2",
-        "undici": "^5.22.1",
-        "utf-8-validate": "^6.0.3",
-        "zlib-sync": "^0.1.8"
-    },
-    "devDependencies": {
-        "prettier": "^2.8.7",
-        "ts-standard": "^12.0.2"
-    }
+  "version": "0.1.0",
+  "main": "./core/main.ts",
+  "type": "module",
+  "directories": {
+    "test": "tests"
+  },
+  "engines": {
+        "node": ">=16.9.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" exit 1",
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "prepare": "npm.cmd run compile",
+    "pretest": "npm.cmd run compile",
+    "posttest": "npm.cmd run lint"
+  },
+  "dependencies": {
+    "@types/node": "^18.15.11",
+    "0x": "^5.5.0",
+    "better-docs": "^2.7.2",
+    "bufferutil": "^4.0.7",
+    "chalk": "^4.1.2",
+    "clean-jsdoc-theme": "^4.2.7",
+    "discord.js": "^14.11.0",
+    "jsdoc": "^4.0.2",
+    "jsonc-parser": "^3.2.0",
+    "mongodb": "^5.6.0",
+    "node": "^19.8.1",
+    "typescript": "^5.0.2",
+    "undici": "^5.22.1",
+    "utf-8-validate": "^6.0.3",
+    "zlib-sync": "^0.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^14.11.2",
+    "gts": "^3.1.1",
+    "prettier": "^2.8.8",
+    "typescript": "~4.7.0"
+  }
 }
