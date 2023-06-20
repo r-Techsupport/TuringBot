@@ -1,48 +1,55 @@
-# This yaml file contains Service (network/group of pods) and Deployment (instructions on how to start/update the service) definitions for a development environment
+# This yaml file contains k8s definitions for a development environment
 # https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-    name: turingbot-dev
+    name: turingbot
     labels:
-        app: turingbot-dev
+        name: turingbot
 spec:
-    type: LoadBalancer
-    ports:
-        - port: 80
-          name: http
-        - port: 443
-          name: https
+    replicas: 1
+    # Selector and template are basically specifying "when i want to take an action, what do i want to target?"
+    # in this case, we only want to target *this* container
     selector:
-        app: turingbot
+        matchLabels:
+            name: turingbot
+    template:
+        metadata:
+            labels:
+                name: turingbot
+        spec:
+            containers:
+                - name: turingbot
+                  image: turingbot
+                  imagePullPolicy: Never
+                  resources:
+                      limits:
+                          memory: "512Mi"
+                          cpu: "500m"
 
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: turingbot-dev
+    name: mongodb
     labels:
-        app: turingbot-dev
+        name: mongodb
 spec:
-    replicas: 1
     selector:
         matchLabels:
-            app: turingbot-dev
+            name: mongodb
     template:
         metadata:
             labels:
-                app: turingbot-dev
+                name: mongodb
         spec:
             containers:
-                - name: turingbot
-                  image: turingbot
-                  ports:
-                      - containerPort: 80
-                      - containerPort: 443
-                  imagePullPolicy: Never
-
                 - name: mongodb
                   image: mongo
+                  resources:
+                      limits:
+                          memory: "512Mi"
+                          cpu: "500m"
                   ports:
                       - containerPort: 27017
                   env:
@@ -50,3 +57,57 @@ spec:
                         value: root
                       - name: MONGO_INITDB_ROOT_PASSWORD
                         value: root
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: mongodb
+spec:
+    type: ClusterIP
+    selector:
+        name: mongodb
+    ports:
+        - port: 27017
+          targetPort: 27017
+# apiVersion: v1
+# kind: Service
+# metadata:
+#     name: turingbot-dev
+#     labels:
+#         run:
+
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#     name: turingbot-dev
+#     labels:
+#         app: turingbot-dev
+# spec:
+#     replicas: 1
+#     selector:
+#         matchLabels:
+#             app: turingbot-dev
+#     template:
+#         metadata:
+#             labels:
+#                 app: turingbot-dev
+#         spec:
+#             containers:
+#                 - name: turingbot
+#                   image: turingbot
+#                   ports:
+#                       - containerPort: 80
+#                       - containerPort: 443
+#                   imagePullPolicy: Never
+
+#                 - name: mongodb
+#                   image: mongo
+#                   ports:
+#                       - containerPort: 27017
+#                   env:
+#                       - name: MONGO_INITDB_ROOT_USERNAME
+#                         value: root
+#                       - name: MONGO_INITDB_ROOT_PASSWORD
+#                         value: root
+# ---

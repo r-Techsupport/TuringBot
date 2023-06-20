@@ -7,7 +7,10 @@ prep:
 
 # Start the bot without typechecking, outside of docker
 start:
+# --build is needed to use --verbose, --verbose is needed so that tsc isn't totally silent
 	npx tsc --build --verbose
+# --enable-source-maps uses the `.map` files to make stack traces point towards the typescript files
+# instead of the compiled js
 	node --enable-source-maps ./target/core/main.js 
 
 # Compile the code, and start the bot with a profiler running.
@@ -22,8 +25,12 @@ docs:
 # Build JSDOC documentation, create an nginx docker container, and start the docker container
 # (on port 8080)
 docker-docs: docs
+# -t assigns the tag to turingdocs, ./docs/ indicates where the dockerfile is located
 	docker build -t turingdocs ./docs/
-	docker run -d -p 8080:80 --name turingdocs turingdocs
+# --rm removes the container once it's finished running,
+# -d means to run in daemon mode, -p 8080:80 indicates that we want to
+# take port 80 inside the container and map it to port 8080 on the outside
+	docker run --rm -d -p 8080:80 --name turingdocs turingdocs
 
 
 # Build a docker container us
@@ -32,7 +39,7 @@ docker-build:
 
 # Start a pre-existing docker container in daemon mode
 docker-start:
-	docker run -d turingbot turingbot
+	docker run --rm -d turingbot turingbot
 
 # Make a bot docker container and start it in daemon mode
 docker-run: docker-build
@@ -40,6 +47,7 @@ docker-run: docker-build
 
 # Format whole project
 format:
+# -w indicates that we want to write the formatting changes
 	npx prettier -w .
 
 # Check formatting for the whole project
