@@ -4,8 +4,7 @@
  * with factoids.
  */
 
-import { APIEmbed, BaseMessageOptions, Embed } from 'discord.js'
-import { title } from 'node:process'
+import { APIEmbed, BaseMessageOptions } from 'discord.js'
 
 // TODO: fill all this out
 // most of these were picked from the limits list on the discord.js page,

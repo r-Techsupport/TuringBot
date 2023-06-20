@@ -1,7 +1,7 @@
 {
     "source": {
         "includePattern": ".+\\.(j|t)s(doc|x)?$",
-        "include": ["core", "README.md", "package.json"]
+        "include": ["src/core", "README.md", "package.json"]
     },
     "plugins": ["plugins/markdown", "better-docs/typescript"],
     "opts": {

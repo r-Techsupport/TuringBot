@@ -1,8 +1,8 @@
 import { describe, it } from 'node:test'
 import chalk from 'chalk'
 
-import { EventCategory, eventLogger } from '../core/logger'
-import { botConfig } from '../core/config'
+import { EventCategory, eventLogger } from '../src/core/logger'
+import { botConfig } from '../src/core/config'
 
 // This should probably be removed later, I'd like to make tests run when
 // the bot is connected to discord and started so that tests don't need

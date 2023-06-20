@@ -4,15 +4,12 @@
         "module": "ESNext",
         "target": "ESnext",
         "lib": ["ESNext"],
+        
         "outDir": "target",
         "sourceMap": true,
         "moduleResolution": "node",
         "incremental": true,
         "strict": true
     },
-    "ts-node": {
-        "files": true,
-        "swc": true,
-        "esm": true
-    }
+    "include": ["src/**/*"]
 }

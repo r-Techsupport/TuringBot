@@ -5,6 +5,8 @@ import { botConfig } from './config.js'
 import { EventCategory, eventLogger } from './logger.js'
 import { RootModule, SubModule } from './modules.js'
 import { embed } from './discord.js'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 // TODO: re-organize the core to take advantage of typescript namespaces (https://www.typescriptlang.org/docs/handbook/namespaces.html).
 
@@ -54,8 +56,9 @@ client.once(Events.ClientReady, async (clientEvent) => {
     2
   )
 
-  // `readdir` relative paths are based on the pwd of the node process
-  const moduleLocation = './target/modules'
+  // annoyingly, readdir() calls are relative to the node process, not the file making the call,
+  // so it's resolved manually to make this more robust
+  const moduleLocation = fileURLToPath(path.dirname(import.meta.url) + '/../modules')
   const files: Dirent[] = readdirSync(moduleLocation, { withFileTypes: true })
   for (const file of files) {
     // If we've hit a directory, then attempt to fetch the modules from a file with the same name

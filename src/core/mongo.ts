@@ -18,11 +18,11 @@ export const mongo = new Dependency('MongoDB', async () => {
       version: ServerApiVersion.v1,
       strict: true,
       deprecationErrors: true
-    }
+    },
+    serverSelectionTimeoutMS: 3000
   })
 
   await mongoClient.connect().catch((err) => {
-    console.log(err)
     throw err
   })
 

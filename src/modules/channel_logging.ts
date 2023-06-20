@@ -26,8 +26,6 @@ import {
   ButtonInteraction
 } from 'discord.js'
 import * as util from '../core/util.js'
-import { getCombinedModifierFlags } from 'typescript'
-import { promises } from 'node:dns'
 
 /**
  * An efficient data structure for the buffered handling of messages, make use of the `read()`, `write()`, and `onWrite()` methods
