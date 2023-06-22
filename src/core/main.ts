@@ -225,11 +225,25 @@ function listen(): void {
         .executeCommand(tokens.join(' '), message)
         .then((value: void | APIEmbed) => {
           // enable modules to return an embed
-          if (value != null) {
-            void message.reply({embeds: [value]});
+          if (value !== null) {
+            void message.reply({embeds: [value!]});
           }
         })
         .catch((err: Error) => {
+          eventLogger.logEvent(
+            {
+              category: EventCategory.Error,
+              location: 'core',
+              description:
+                `Encountered an error running command ${currentModule.command}:` +
+                '```' +
+                err.name +
+                '\n' +
+                err.stack +
+                '```',
+            },
+            3
+          );
           void message.reply({
             embeds: [
               embed.errorEmbed(
