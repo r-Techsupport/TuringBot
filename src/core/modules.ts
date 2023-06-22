@@ -307,8 +307,11 @@ export class Dependency {
         {
           category: EventCategory.Warning,
           location: 'core',
-          description:
-            `Failed to resolve dependency ${this.name} due to error ${(err as Error).name}, anything makes use of that dependency will not be available`,
+          description: `Failed to resolve dependency ${
+            this.name
+          } due to error ${
+            (err as Error).name
+          }, anything makes use of that dependency will not be available`,
         },
         2
       );

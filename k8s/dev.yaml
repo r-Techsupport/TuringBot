@@ -1,31 +1,16 @@
 # This yaml file contains k8s definitions for a development environment
 # https://kubernetes.io/docs/concepts/cluster-administration/manage-deployment/
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Service
 metadata:
-    name: turingbot
-    labels:
-        name: turingbot
+    name: mongodb
 spec:
-    replicas: 1
-    # Selector and template are basically specifying "when i want to take an action, what do i want to target?"
-    # in this case, we only want to target *this* container
+    type: ClusterIP
     selector:
-        matchLabels:
-            name: turingbot
-    template:
-        metadata:
-            labels:
-                name: turingbot
-        spec:
-            containers:
-                - name: turingbot
-                  image: turingbot
-                  imagePullPolicy: Never
-                  resources:
-                      limits:
-                          memory: "512Mi"
-                          cpu: "500m"
+        name: mongodb
+    ports:
+        - port: 27017
+          targetPort: 27017
 
 ---
 apiVersion: apps/v1
@@ -58,17 +43,32 @@ spec:
                       - name: MONGO_INITDB_ROOT_PASSWORD
                         value: root
 ---
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-    name: mongodb
+    name: turingbot
+    labels:
+        name: turingbot
 spec:
-    type: ClusterIP
+    replicas: 1
+    # Selector and template are basically specifying "when i want to take an action, what do i want to target?"
+    # in this case, we only want to target *this* container
     selector:
-        name: mongodb
-    ports:
-        - port: 27017
-          targetPort: 27017
+        matchLabels:
+            name: turingbot
+    template:
+        metadata:
+            labels:
+                name: turingbot
+        spec:
+            containers:
+                - name: turingbot
+                  image: turingbot
+                  imagePullPolicy: Never
+                  resources:
+                      limits:
+                          memory: "512Mi"
+                          cpu: "500m"
 # apiVersion: v1
 # kind: Service
 # metadata:

@@ -122,7 +122,7 @@ class MessageRingBuffer {
    * Write a message into the buffer and advance the write cursor forwards, allocating more space if necessary
    */
   write(message: Message) {
-    if (this.numValues == this.buf.length - 1) {
+    if (this.numValues === this.buf.length - 1) {
       this.expandBuffer(this.reallocationStepSize);
     }
 
@@ -161,7 +161,7 @@ class MessageRingBuffer {
     // move the read cursor forwards
     if (this.readCursorIndex > this.writeCursorIndex) {
       for (let i = 0; i < increaseBy; i++) {
-        if (this.readCursorIndex == this.buf.length - 1) {
+        if (this.readCursorIndex === this.buf.length - 1) {
           this.readCursorIndex = 0;
         } else {
           this.readCursorIndex += 1;

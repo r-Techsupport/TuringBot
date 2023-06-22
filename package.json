@@ -6,27 +6,18 @@
     "test": "tests"
   },
   "engines": {
-        "node": ">=16.9.0"
+    "node": ">=16.9.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" exit 1",
     "lint": "gts lint",
     "clean": "gts clean",
-    "compile": "tsc",
-    "fix": "gts fix",
-    "prepare": "npm.cmd run compile",
-    "pretest": "npm.cmd run compile",
-    "posttest": "npm.cmd run lint"
+    "fix": "gts fix"
   },
   "dependencies": {
-    "@types/node": "^18.15.11",
-    "0x": "^5.5.0",
-    "better-docs": "^2.7.2",
     "bufferutil": "^4.0.7",
     "chalk": "^4.1.2",
-    "clean-jsdoc-theme": "^4.2.7",
     "discord.js": "^14.11.0",
-    "jsdoc": "^4.0.2",
     "jsonc-parser": "^3.2.0",
     "mongodb": "^5.6.0",
     "node": "^19.8.1",
@@ -35,8 +26,12 @@
     "utf-8-validate": "^6.0.3",
     "zlib-sync": "^0.1.8"
   },
-  "devDependencies": {
-    "@types/node": "^14.11.2",
+  "devDependencies":{
+    "@types/node": "^20.3.1",
+    "0x": "^5.5.0",
+    "jsdoc": "^4.0.2",
+    "clean-jsdoc-theme": "^4.2.7",
+    "better-docs": "^2.7.2",
     "gts": "^3.1.1",
     "prettier": "^2.8.8",
     "typescript": "~4.7.0"

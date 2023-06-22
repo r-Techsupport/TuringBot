@@ -8,10 +8,12 @@ WORKDIR /usr/src/turing-bot
 COPY package*.json ./
 
 # Install dependancies
-RUN npm install
+ RUN npm install --no-audit --omit=dev
 
-# Copy source code over
-COPY . .
+# Copy code over
+COPY config.jsonc ./config.jsonc
+COPY Makefile ./Makefile
+COPY target/ ./target/
 
 # Run it
-CMD ["make", "start"]
+CMD ["make", "run"]
