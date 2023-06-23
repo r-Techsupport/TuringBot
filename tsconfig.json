@@ -1,15 +1,15 @@
 {
-    "compilerOptions": {
-        "esModuleInterop": true,
-        "module": "ESNext",
-        "target": "ESnext",
-        "lib": ["ESNext"],
-        
-        "outDir": "target",
-        "sourceMap": true,
-        "moduleResolution": "node",
-        "incremental": true,
-        "strict": true
-    },
-    "include": ["src/**/*"]
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "target": "ESnext",
+    "lib": ["ESNext"],
+
+    "outDir": "target",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "incremental": true,
+    "strict": true
+  },
+  "include": ["src/**/*"]
 }

@@ -8,23 +8,23 @@ Because this is being built as a replacement to TechSupportBot, there is some cr
 
 Minimum targets include:
 
--   Message logging. This implementation should log messages in a mirrored Logging category. This implementation should handle message events (creation, editing, deletion), and automatically create logging threads that mirror the logged channel. The implementation should handle the massive scale that comes with logging a high volume of messages, and support manual logging, like commands used.
--   Factoids. This implementation should include the management of factoids (creation, editing, documenting, and deleting). It should not be bound to a single prefix.
--   User moderation. This implementation should include per-channel message logging, as well as an easy framework to moderate users (kick, ban, time out)
--   Support for unit tests
--   Simple deployment. Deployment should require minimal configuration. a Makefile should be used to simplify processes.
+- Message logging. This implementation should log messages in a mirrored Logging category. This implementation should handle message events (creation, editing, deletion), and automatically create logging threads that mirror the logged channel. The implementation should handle the massive scale that comes with logging a high volume of messages, and support manual logging, like commands used.
+- Factoids. This implementation should include the management of factoids (creation, editing, documenting, and deleting). It should not be bound to a single prefix.
+- User moderation. This implementation should include per-channel message logging, as well as an easy framework to moderate users (kick, ban, time out)
+- Support for unit tests
+- Simple deployment. Deployment should require minimal configuration. a Makefile should be used to simplify processes.
 
 Non-critical high priority targets:
 
--   Google CSE (image search, text search, youtube, pagination)
+- Google CSE (image search, text search, youtube, pagination)
 
 Non-critical targets:
 
--   Complete extension parity with TechSupportBot
+- Complete extension parity with TechSupportBot
 
 ## Non-targets
 
--   Multi-server support. This proves to increase configuration, and I feel that the tradeoff of computational power for running multiple instances is worth it.
+- Multi-server support. This proves to increase configuration, and I feel that the tradeoff of computational power for running multiple instances is worth it.
 
 # Design Choices
 
@@ -41,8 +41,8 @@ TypeScript was chosen to allow for greater resiliency over standard JavaScript. 
 
 While there are many pros to this decision, there are some drawbacks to be made aware of.
 
--   Resiliency. Javascript and Typescript do not have as robust handling of errors as some alternatives, like Rust. We should try to mitigate this by making use of the `Promise` pattern where possible.
--   Performance. Javascript and Typescript are less performant than other possible language choices, however I feel that the performance is still sufficient, and the positives that come with the Discord.js ecosystem outweigh the performance disadvantage.
+- Resiliency. Javascript and Typescript do not have as robust handling of errors as some alternatives, like Rust. We should try to mitigate this by making use of the `Promise` pattern where possible.
+- Performance. Javascript and Typescript are less performant than other possible language choices, however I feel that the performance is still sufficient, and the positives that come with the Discord.js ecosystem outweigh the performance disadvantage.
 
 Kubernetes was chosen because it offers features like Service Discovery and Probing. It would allow for the creation of resiliency clustering. This will introduce initial development complexity, but careful documentation and configuration will mitigate this. The ability to run resiliency nodes on different devices would avoid reliability being dependant on a single server, as this has presented issues in the past.
 

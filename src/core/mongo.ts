@@ -20,7 +20,7 @@ export const mongo = new Dependency('MongoDB', async () => {
       strict: true,
       deprecationErrors: true,
     },
-    serverSelectionTimeoutMS: 3000,
+    serverSelectionTimeoutMS: 15000,
   });
 
   await mongoClient.connect().catch(err => {

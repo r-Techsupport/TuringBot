@@ -7,7 +7,7 @@ import type {Collection, DeleteResult} from 'mongodb';
 import {request} from 'undici';
 
 import * as util from '../../core/util.js';
-import {Attachment, BaseMessageOptions} from 'discord.js';
+import {Attachment, BaseMessageOptions, Events, Message} from 'discord.js';
 import {validateMessage} from './factoid_validation.js';
 
 interface Factoid {
@@ -20,18 +20,103 @@ interface Factoid {
   /** The message you'd like to be sent when the factoid is triggered. While preferably an embed, this could be any valid form of message */
   message: BaseMessageOptions;
 }
-
+/** The name of the MongoDB collection where factoids should be stored */
 const FACTOID_COLLECTION_NAME = 'factoids';
-
 const factoid = new util.RootModule(
   'factoid',
-  'Simple way to dynamically create and manage factoids (a static message that can be summoned on demand)',
+  'Manage or fetch user generated messages',
   [util.mongo]
 );
 
 factoid.onInitialize(async () => {
-  // TODO: add a listener that looks for a factoid if prefix is found
+  // these are defined outside so that they don't get redefined every time a
+  // message is sent
+  const db: Db = util.mongo.fetchValue();
+  const factoids: Collection<Factoid> = db.collection<Factoid>(
+    FACTOID_COLLECTION_NAME
+  );
+  const prefixes: string[] = factoid.config.prefixes;
+  // listen for a message sent by any of a few prefixes
+  // only register a listener if at least one prefix was specified
+  if (prefixes.length === 0) {
+    return;
+  }
+
+  util.client.on(Events.MessageCreate, async (message: Message<boolean>) => {
+    // anything that does not include
+    if (!prefixes.includes(message.content.charAt(0))) {
+      return;
+    }
+    // make sure factoids can only be triggered by non bot users
+    if (message.author.bot) {
+      return;
+    }
+    //remove the prefix, split by spaces, and query the DB
+    const queryArguments: string[] = message.content.slice(1).split(' ');
+    const queryResult = await factoids.findOne({
+      name: queryArguments[0],
+    });
+    // no match found
+    if (queryResult === null) {
+      return;
+    }
+    // match found, send factoid
+    await message.reply(queryResult.message).catch(err => {
+      util.eventLogger.logEvent(
+        {
+          category: util.EventCategory.Error,
+          location: 'factoid',
+          description: `An error was encountered sending factoid: ${
+            (err as Error).name
+          }`,
+        },
+        3
+      );
+    });
+  });
 });
+
+factoid.registerSubModule(
+  new util.SubModule(
+    'get',
+    'Fetch a factoid from the database and return it',
+    async (args, msg) => {
+      const factoidName: string | undefined = args?.split(' ')[0];
+      if (factoidName === '') {
+        return util.embed.errorEmbed(
+          'No factoid name provided, please specify a factoid.'
+        );
+      }
+      const db: Db = util.mongo.fetchValue();
+      const factoids: Collection<Factoid> = db.collection<Factoid>(
+        FACTOID_COLLECTION_NAME
+      );
+
+      // findOne returns null if it doesn't find the thing
+      const locatedFactoid: Factoid | null = await factoids.findOne({
+        name: factoidName,
+      });
+      if (locatedFactoid === null) {
+        return util.embed.errorEmbed(
+          'Unable to located the factoid specified.'
+        );
+      }
+
+      await msg.reply(locatedFactoid.message).catch(err => {
+        util.eventLogger.logEvent(
+          {
+            category: util.EventCategory.Error,
+            location: 'factoid',
+            description: `An error was encountered sending factoid: ${
+              (err as Error).name
+            }`,
+          },
+          3
+        );
+      });
+    }
+  )
+);
 
 factoid.registerSubModule(
   new util.SubModule(
@@ -63,7 +148,7 @@ factoid.registerSubModule(
           `Factoid validation failed with error: ${(err as Error).name}`
         );
       }
-      // if any errors were found, return early
+      // if any errors were found with the factoid to remember, return early
       if (messageIssues.length > 0) {
         return util.embed.errorEmbed(
           `The following issues were found with the attached json (remember cancelled):\n - ${messageIssues.join(
@@ -71,21 +156,24 @@ factoid.registerSubModule(
           )}`
         );
       }
-
       // if no name was specified, return early
       if (args === undefined) {
         return util.embed.errorEmbed(
           'Factoid name missing from command invocation, please specify a name.'
         );
       }
-
+      // the structure sent to the database
       const factoid: Factoid = {
         name: args.split(' ')[0],
         aliases: [],
         hidden: false,
         message: JSON.parse(serializedFactoid),
       };
-
+      // strip all mentions from the factoid
+      // https://discord.com/developers/docs/resources/channel#allowed-mentions-object
+      factoid.message.allowedMentions = {
+        parse: [],
+      };
       // TODO: allow plain text factoids by taking everything after the argument
 
       // TODO: see if a factoid is stored with the same name
@@ -130,42 +218,8 @@ factoid.registerSubModule(
 );
 
 factoid.registerSubModule(
-  new util.SubModule(
-    'get',
-    'Fetch a factoid from the database and return it',
-    async (args, msg) => {
-      const factoidName: string | undefined = args?.split(' ')[0];
-      if (factoidName === '') {
-        return util.embed.errorEmbed(
-          'No factoid name provided, please specify a factoid.'
-        );
-      }
-      const db: Db = util.mongo.fetchValue();
-      const factoids: Collection<Factoid> = db.collection<Factoid>(
-        FACTOID_COLLECTION_NAME
-      );
-
-      // findOne returns null if it doesn't find the thing
-      const locatedFactoid: Factoid | null = await factoids.findOne({
-        name: factoidName,
-      });
-      if (locatedFactoid === null) {
-        return util.embed.errorEmbed(
-          'Unable to located the factoid specified.'
-        );
-      }
-      // strip all mentions from the factoid
-      // https://discord.com/developers/docs/resources/channel#allowed-mentions-object
-      locatedFactoid.message.allowedMentions = {
-        parse: [],
-      };
-
-      await msg.reply(locatedFactoid.message);
-    }
-  )
+  new util.SubModule('preview', 'Preview a factoid json without remembering it')
 );
-
-factoid.registerSubModule(new util.SubModule('preview', 'Preview a factoid'));
 factoid.registerSubModule(
   new util.SubModule('all', 'Generate a list of all factoids as a webpage')
 );

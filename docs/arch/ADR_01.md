@@ -17,8 +17,8 @@ this should be a fairly pure, from the ground up representation of my plans.
 
 I want:
 
--   A way for developers to define and reference dependencies easily, without ever needing to touch the core.
--   Useful error messages that are returned when a command is used, that explain what was not available, and (maybe) why
+- A way for developers to define and reference dependencies easily, without ever needing to touch the core.
+- Useful error messages that are returned when a command is used, that explain what was not available, and (maybe) why
 
 A module could have a list of dependencies passed to the constructor, and before execution, the executor can verify that all dependencies are ready to be accessed.
 If any of the dependencies are not accessible, an error message could returned that's actually helpful, maybe something along the lines of "This command has unmet dependencies: \[deps\]"

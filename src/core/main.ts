@@ -166,7 +166,7 @@ function listen(): void {
     }
 
     const foundRootModule = getModWithFirstToken();
-    if (foundRootModule == null) {
+    if (foundRootModule === undefined) {
       return;
     }
 
@@ -225,7 +225,7 @@ function listen(): void {
         .executeCommand(tokens.join(' '), message)
         .then((value: void | APIEmbed) => {
           // enable modules to return an embed
-          if (value !== null) {
+          if (value !== undefined) {
             void message.reply({embeds: [value!]});
           }
         })
@@ -303,6 +303,8 @@ function generateHelpMessageForModule(
  */
 async function initializeModules(): Promise<void> {
   for (const mod of modules) {
+    // TODO: concurrent-erize this so that more modules are resolved
+    // while we wait for dep resolution
     /** If a dependency fails to resolve, this is set to true and the module is not initialized */
     const missingDependency = false;
     // by starting all of the functions at once then awaiting completion, it's considerably more efficient

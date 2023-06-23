@@ -1,16 +1,16 @@
 {
-    "cSpell.words": [
-        "channelmap",
-        "INITDB",
-        "loggingchannel",
-        "popconfirm",
-        "readcursor",
-        "ringbuffer",
-        "submod",
-        "turingbot",
-        "unlogged"
-    ],
-    "yaml.schemas": {
-        "kubernetes://schema/apps/v1%40deployment": "file:///c%3A/Users/James%20Boehme/Documents/GitHub/TuringBot/k8s/dev.yaml"
-    }
+  "cSpell.words": [
+    "channelmap",
+    "INITDB",
+    "loggingchannel",
+    "popconfirm",
+    "readcursor",
+    "ringbuffer",
+    "submod",
+    "turingbot",
+    "unlogged"
+  ],
+  "yaml.schemas": {
+    "kubernetes://schema/apps/v1%40deployment": "file:///c%3A/Users/James%20Boehme/Documents/GitHub/TuringBot/k8s/dev.yaml"
+  }
 }

@@ -1,28 +1,28 @@
 {
-    "source": {
-        "includePattern": ".+\\.(j|t)s(doc|x)?$",
-        "include": ["src/core", "README.md", "package.json"]
-    },
-    "plugins": ["plugins/markdown", "better-docs/typescript"],
-    "opts": {
-        "encoding": "utf8",
-        "readme": "./README.md",
-        "destination": "docs/jsdoc/",
-        "recurse": true,
-        "verbose": true,
-        "template": "./node_modules/clean-jsdoc-theme",
-        "theme_opts": {
-            "default_theme": "dark"
-        }
-    },
-    "templates": {
-        "cleverLinks": true
-    },
-    "markdown": {
-        "hardwrap": false,
-        "idInHeadings": true
-    },
-    "tags": {
-        "allowUnknownTags": ["optional"]
+  "source": {
+    "includePattern": ".+\\.(j|t)s(doc|x)?$",
+    "include": ["src/core", "README.md", "package.json"]
+  },
+  "plugins": ["plugins/markdown", "better-docs/typescript"],
+  "opts": {
+    "encoding": "utf8",
+    "readme": "./README.md",
+    "destination": "docs/jsdoc/",
+    "recurse": true,
+    "verbose": true,
+    "template": "./node_modules/clean-jsdoc-theme",
+    "theme_opts": {
+      "default_theme": "dark"
     }
+  },
+  "templates": {
+    "cleverLinks": true
+  },
+  "markdown": {
+    "hardwrap": false,
+    "idInHeadings": true
+  },
+  "tags": {
+    "allowUnknownTags": ["optional"]
+  }
 }
