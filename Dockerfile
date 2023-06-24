@@ -16,4 +16,4 @@ COPY Makefile ./Makefile
 COPY target/ ./target/
 
 # Run it
-CMD ["make", "run"]
+CMD ["make", "profile"]

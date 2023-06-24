@@ -3,12 +3,13 @@
  * This file contains code for defining new modules and anything else directly related to the "module" side of development
  */
 
-import {EventCategory, eventLogger} from './logger.js';
+import {EventCategory, logEvent} from './logger.js';
 import {botConfig} from './config.js';
 import {APIEmbed, Message} from 'discord.js';
 
 interface ModuleConfig {
   enabled: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [customProperties: string]: any;
 }
 
@@ -26,7 +27,7 @@ export class BaseModule {
   readonly command: string;
 
   /**
-   * Any alternative phrases you want to trigger the command. If the command was `foobarbuzz` you could maybe use `fbb` or `f`
+   * Any alternative phrases you want to trigger the command. If the command was `foobar` you could maybe use `fb` or `f`
    */
   readonly aliases: string[] = [];
 
@@ -138,7 +139,9 @@ export class RootModule extends BaseModule {
   ) {
     super(command, helpMessage, onCommandExecute);
     this.dependencies = dependencies;
-    if (onCommandExecute != null) {
+    // the preset for this is a "safe" default,
+    // so we just don't set it at all
+    if (onCommandExecute !== undefined) {
       this.onCommandExecute(onCommandExecute);
     }
     // make sure the config exists
@@ -146,14 +149,11 @@ export class RootModule extends BaseModule {
       this.config = botConfig.modules[this.command];
       this.enabled = this.config.enabled;
     } else {
-      eventLogger.logEvent(
-        {
-          category: EventCategory.Warning,
-          location: 'core',
-          description:
-            `No config option found for "${this.command}" in the config,` +
-            'this module will be disabled.',
-        },
+      logEvent(
+        EventCategory.Warning,
+        'core',
+        `No config option found for "${this.command}" in the config,` +
+          'this module will be disabled.',
         1
       );
     }
@@ -246,6 +246,7 @@ export class Dependency {
    *
    * Otherwise, this is the resource. The resource was already fetched
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private value: null | Error | NonNullable<any> = null;
 
   /**
@@ -261,6 +262,7 @@ export class Dependency {
    */
   constructor(
     public name: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     private readonly attemptResolution: () => Promise<any>
   ) {}
 
@@ -270,7 +272,9 @@ export class Dependency {
    * resolution attempt.
    * @returns  This function will return either: The value/result/whatever you want to call it
    * of the dependency, or `null`.
+   *
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async resolve(): Promise<any> {
     // if the value is not null, and not an error, then this dependency has already
     // been resolved.
@@ -292,27 +296,21 @@ export class Dependency {
     try {
       const resolutionResult = await this.attemptResolution();
       this.value = resolutionResult;
-      eventLogger.logEvent(
-        {
-          category: EventCategory.Info,
-          location: 'core',
-          description: 'Successfully resolved dependency: ' + this.name,
-        },
+      logEvent(
+        EventCategory.Info,
+        'core',
+        'Successfully resolved dependency: ' + this.name,
         3
       );
       return this.value;
     } catch (err) {
       this.value = err;
-      eventLogger.logEvent(
-        {
-          category: EventCategory.Warning,
-          location: 'core',
-          description: `Failed to resolve dependency ${
-            this.name
-          } due to error ${
-            (err as Error).name
-          }, anything makes use of that dependency will not be available`,
-        },
+      logEvent(
+        EventCategory.Warning,
+        'core',
+        `Failed to resolve dependency ${this.name} due to error ${
+          (err as Error).name
+        }, anything makes use of that dependency will not be available`,
         2
       );
       // if an error is encountered during resolution, null is returned
@@ -325,6 +323,7 @@ export class Dependency {
    * "safe" contexts, like module execution, because the module has already been successfully resolved
    * @throws Will throw an error if the dependency has not been successfully resolved
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fetchValue(): NonNullable<any> {
     if (this.failed() || !this.resolutionAttempted()) {
       throw new Error(

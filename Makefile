@@ -30,8 +30,8 @@ format:
 lint:
 	npx gts lint
 
-# Compile the code, and start the bot with a profiler running.
-profile: build
+# start the bot with a profiler running.
+profile: 
 	npx 0x -o --output-dir profile_results.0x ./target/core/main.js
 
 # Build a docker container (requires dev deps)

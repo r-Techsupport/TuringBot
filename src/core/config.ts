@@ -5,8 +5,9 @@
 import {writeFile, readFile} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
 import {parse as parseJSONC, modify, applyEdits, JSONPath} from 'jsonc-parser';
-import {EventCategory, eventLogger} from './logger.js';
+import {EventCategory, logEvent} from './logger.js';
 
+// TODO: write out a large interface for the config
 /**
  * Path of the config on the filesystem relative to where node is being run from
  */
@@ -17,6 +18,7 @@ const CONFIG_LOCATION = './config.jsonc';
  * @namespace
  */
 // The any type is needed because the json is written to this object at runtime
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const botConfig: any = {
   /**
    * This function populates `botConfig` with a mirror of `config.jsonc`
@@ -73,24 +75,23 @@ export const botConfig: any = {
    * or filesystem operations fail in any way (bad perms, whatever). Will return silently and
    * log an error if `location` does not point to a valid location in the config.
    */
-  // eslint-ignore-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async editConfigOption(location: JSONPath, newValue: any): Promise<void> {
     // iteratively determine whether or not the key that's being edited exists
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     let currentPosition = this;
     for (const i in location) {
       // see if the key exists
       if (location[i] in currentPosition) {
         currentPosition = currentPosition[location[i]];
       } else {
-        eventLogger.logEvent(
-          {
-            category: EventCategory.Error,
-            location: 'core',
-            description:
-              "An attempt was made to edit a config value that doesn't exist(" +
-              location.join('.') +
-              '), cancelling edit',
-          },
+        logEvent(
+          EventCategory.Error,
+          'core',
+          "An attempt was made to edit a config value that doesn't exist( " +
+            location.join('.') +
+            '), cancelling edit',
+
           1
         );
         return;
@@ -110,14 +111,11 @@ export const botConfig: any = {
     );
 
     await writeFile(CONFIG_LOCATION, newConfig);
-    eventLogger.logEvent(
-      {
-        category: EventCategory.Info,
-        location: 'any',
-        description:
-          location.join('.') +
-          ' in `config.jsonc` changed and diff applied in memory',
-      },
+    logEvent(
+      EventCategory.Info,
+      'core',
+      location.join('.') +
+        ' in `config.jsonc` changed and diff applied in memory',
       2
     );
   },

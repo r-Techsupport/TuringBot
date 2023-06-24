@@ -36,47 +36,16 @@ export enum EventCategory {
   Error = 'EE',
 }
 
-/**
- * Collection of information about a bot event.
- *
- */
-export interface EventInfo {
-  /** Where the event originated from, this could be a module name, part of the core, or whatever you see fit */
-  location: string;
-  /** A description of what happened */
-  description: string;
-  /** A categorization of the event */
-  category: EventCategory;
-}
-
-/**
- * This should be used to log internal bot events. Depending on the config, events will be propagated through stdout, the configured channel, and configured DMs.
- * One might use this to log a module starting or stopping, or something changing. This is wrapped inside of an object for convenience, you probably want `logEvent`.
- */
-export const eventLogger = {
-  /**
-   * Whether or the discord API connection has been made
-   */
-  discordInitialized: false,
-  /**
-   * Use to log an bot event. Depending on the config, this will be propagated to stdout, a configured Discord channel, or the PMs of a configured user.
-   * @param location Where the event originates from, this could be a module name, a part of the core, or wherever you see fit
-   * @param event The actual event, this explains what happened and categorizes it
-   * @param verbosity At what level you want the event to be logged. This number should *never* be 0 outside of configuration.
-   */
-  logEvent(event: EventInfo, verbosity: VerbosityLevel) {
-    /**
-     * Channel ID specified in `config.jsonc` where events are logged
-     */
-    const loggingChannelId: string =
-      botConfig.logging.loggingChannel.loggingChannelId;
-
-    /**
-     * List of user IDs that receive event DMs
-     */
-    const subscribedUsers: string[] =
-      botConfig.logging.directMessageLogging.userIds;
-
+export function logEvent(
+  category: EventCategory,
+  location: string,
+  description: string,
+  verbosity: VerbosityLevel
+) {
+  // Logging to stdout
+  {
+    /** Verbosity level specified in the config for logging to stdout */
+    const loggingLevel: number = botConfig.logging.stdout.verboseLevel;
     /**
      * Convert stdout to a particular color.
      * ```
@@ -84,7 +53,7 @@ export const eventLogger = {
      * ```
      */
     let colorEventType;
-    switch (event.category) {
+    switch (category) {
       case 'II':
         colorEventType = chalk.bold.blue;
         break;
@@ -98,131 +67,134 @@ export const eventLogger = {
         colorEventType = chalk.bold.whiteBright;
     }
 
-    // Make sure the config is populated and the logging section exists, if no, throw error
-    // This allows the rest of the file to assume the config exists
-    if (botConfig.logging === undefined) {
-      console.log(
-        ` ${chalk.bold.redBright(
-          '[EE]'
-        )} |${new Date().toLocaleString()}| ${chalk.bold.gray(
-          'logging'
-        )}: unable to get log settings from botConfig`
-      );
-      process.exit(1);
-    }
-
-    if (botConfig.logging.stdout.verboseLevel >= verbosity) {
+    if (loggingLevel >= verbosity) {
       console.log(
         `|${new Date().toLocaleString()}| ${colorEventType(
-          '[' + event.category + ']'
-        )} ${chalk.bold(event.location)}: ${event.description}`
+          '[' + category + ']'
+        )} ${chalk.bold(location)}: ${description}`
+      );
+    }
+  }
+
+  // Check to see if we have a discord connection before logging to discord
+  if (!client.isReady) {
+    return;
+  }
+  // this is used for the event channel and DMs
+  const eventEmbed = generateEventEmbed(category, location, description);
+
+  // Logging to the event channel
+  {
+    /**
+     * Channel ID specified in `config.jsonc` where events are logged
+     */
+    const loggingChannelId: string =
+      botConfig.logging.loggingChannel.loggingChannelId;
+    /**
+     * Verbosity specified in the config for logging events to the event channel on discord
+     */
+    const loggingLevel: number = botConfig.logging.loggingChannel.verboseLevel;
+
+    // silence all logging channel event messages if an ID has not been set,
+    // yet an attempt is still being made to log something
+    if (loggingChannelId === '' && loggingLevel !== 0) {
+      botConfig.logging.loggingChannel.verboseLevel = 0;
+      logEvent(
+        EventCategory.Warning,
+        'core',
+        'No logging channel ID has been set, to prevent this warning, set `logging.loggingChannel.verboseLevel` to 0 in the config. Logging through discord will be disabled until restart.',
+        1
+      );
+    }
+    // Sending the event to the logging channel
+    if (loggingLevel >= verbosity) {
+      /**
+       * The actual {@link TextChannel} discord.js reference to the
+       * event channel
+       */
+      const loggingChannel: TextChannel = client.channels.cache.get(
+        loggingChannelId
+      ) as TextChannel;
+
+      void loggingChannel.send({embeds: [eventEmbed]});
+    }
+  }
+
+  // Logging to DMs
+  {
+    /**
+     * List of user IDs that receive event DMs
+     */
+    const subscribedUsers: string[] =
+      botConfig.logging.directMessageLogging.userIds;
+    // config specified logging level for DMs
+    const loggingLevel = botConfig.logging.directMessageLogging.verboseLevel;
+    // Ensure that at least one user is specified
+    if (subscribedUsers.length === 0) {
+      // silence all user event DMs
+      botConfig.logging.directMessageLogging.verboseLevel = 0;
+      logEvent(
+        EventCategory.Warning,
+        'core',
+        'No users are configured to receive events in DMs, however an attempt was made to log an event in DMs. To prevent this warning, set `logging.directMessageLogging.verboseLevel` to 0. All further DM events will be silenced.',
+        1
       );
     }
 
-    // Logging the event to discord
-
-    // Determine the embed color
-    let embedColor: number;
-    switch (event.category) {
-      // Blue
-      case 'II':
-        embedColor = 0x2e8eea;
-        break;
-      // Yellow
-      case 'WW':
-        embedColor = 0xf5f543;
-        break;
-      // Red
-      case 'EE':
-        embedColor = 0xd74e2e;
-        break;
-      default:
-        // He screams, for this should not be possible. (gray)
-        embedColor = 0xaaaaaa;
-    }
-    const eventEmbed: APIEmbed = {
-      title: 'Event Type: ' + categoryToPrettyString(event.category),
-      description: 'Location: ' + event.location,
-      color: embedColor,
-      fields: [
-        {
-          name: 'Description',
-          value: event.description,
-        },
-      ],
-      timestamp: new Date().toISOString(),
-    };
-
-    // Sending the event to the logging channel
-    if (
-      this.discordInitialized &&
-      botConfig.logging.loggingChannel.verboseLevel >= verbosity
-    ) {
-      // Make sure a logging channel has been specified, disable it if one hasn't been set
-      if (botConfig.logging.loggingChannel.loggingChannelId === '') {
-        // silence all logging channel event messages
-        botConfig.logging.loggingChannel.verboseLevel = 0;
-        eventLogger.logEvent(
-          {
-            category: EventCategory.Warning,
-            location: 'core',
-            description:
-              'No logging channel ID has been set, to prevent this warning, set `logging.loggingChannel.verboseLevel` to 0 in the config. Logging through discord will be disabled.',
-          },
-          1
-        );
-      } else {
-        // send the event
-        const loggingChannel = client.channels.cache.get(
-          loggingChannelId
-        ) as TextChannel;
-        void loggingChannel.send({embeds: [eventEmbed]});
+    if (loggingLevel >= verbosity) {
+      // DM everyone specified in the config
+      for (const user of subscribedUsers) {
+        void client.users.send(user, {embeds: [eventEmbed]});
       }
     }
-
-    if (
-      this.discordInitialized &&
-      botConfig.logging.directMessageLogging.verboseLevel >= verbosity
-    ) {
-      // Ensure that at least one user is specified
-      if (subscribedUsers.length === 0) {
-        // silence all user event DMs
-        botConfig.logging.directMessageLogging.verboseLevel = 0;
-        eventLogger.logEvent(
-          {
-            category: EventCategory.Warning,
-            location: 'core',
-            description:
-              'No users are configured to receive events in DMs, however an attempt was made to log an event in DMs. To prevent this warning, set `logging.directMessageLogging.verboseLevel` to 0. All further DM events will be silenced.',
-          },
-          1
-        );
-      } else {
-        // DM everyone specified in the config
-        for (const user of subscribedUsers) {
-          void client.users.send(user, {embeds: [eventEmbed]});
-        }
-      }
-    }
-  },
-};
-
-/**
- * convert an event type to the extended 'human' type, EG:
- *
- * EventCategory.Info (`II`) -> `Information`
- *
- * EventCategory.Warning (`WW`) -> `Warning`
- *
- * EventCategory.Error (`EE`) -> `Error`
- */
-function categoryToPrettyString(shortenedCategory: EventCategory): string {
-  switch (shortenedCategory) {
-    case EventCategory.Info:
-      return 'Information';
-    case EventCategory.Warning:
-      return 'Warning';
-    case EventCategory.Error:
-      return 'Error';
   }
+}
+/**
+ * Take in the given params and spit out a discord embed with the requisite event info
+ * @param category {@link EventCategory} Event type
+ * @param location Where the event occurred
+ * @param description What happened
+ */
+function generateEventEmbed(
+  category: EventCategory,
+  location: string,
+  description: string
+): APIEmbed {
+  // Determine the embed color and long name
+  let embedColor: number;
+  let longName: string;
+  switch (category) {
+    // Blue
+    case 'II':
+      embedColor = 0x2e8eea;
+      longName = 'Information';
+      break;
+    // Yellow
+    case 'WW':
+      embedColor = 0xf5f543;
+      longName = 'Warning';
+      break;
+    // Red
+    case 'EE':
+      embedColor = 0xd74e2e;
+      longName = 'Error';
+      break;
+    default:
+      // He screams, for this should not be possible. (gray)
+      embedColor = 0xaaaaaa;
+      longName = 'Unknown';
+  }
+
+  return {
+    title: 'Event Type: ' + longName,
+    description: 'Location: ' + location,
+    color: embedColor,
+    fields: [
+      {
+        name: 'Description',
+        value: description,
+      },
+    ],
+    timestamp: new Date().toISOString(),
+  };
 }

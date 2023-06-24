@@ -1,7 +1,7 @@
 import {describe, it} from 'node:test';
 import chalk from 'chalk';
 
-import {EventCategory, eventLogger} from '../src/core/logger';
+import {EventCategory, logEvent} from '../src/core/logger';
 import {botConfig} from '../src/core/config';
 
 // This should probably be removed later, I'd like to make tests run when
@@ -15,35 +15,14 @@ describe('testing logging', () => {
   });
 
   it('should log an information event', () => {
-    eventLogger.logEvent(
-      {
-        location: 'testing',
-        description: 'logging an information event',
-        category: EventCategory.Info,
-      },
-      3
-    );
+    logEvent(EventCategory.Info, 'testing', 'logging an information event', 3);
   });
 
   it('should log a warning event', () => {
-    eventLogger.logEvent(
-      {
-        location: 'testing',
-        description: 'logging a warning event',
-        category: EventCategory.Warning,
-      },
-      3
-    );
+    logEvent(EventCategory.Warning, 'testing', 'logging a warning event', 3);
   });
 
   it('should log an error event', () => {
-    eventLogger.logEvent(
-      {
-        location: 'testing',
-        description: 'logging an error event',
-        category: EventCategory.Error,
-      },
-      3
-    );
+    logEvent(EventCategory.Error, 'testing', 'logging an error event', 3);
   });
 });

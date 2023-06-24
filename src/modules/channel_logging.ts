@@ -3,27 +3,21 @@ This module provides discord logging, and is intended to log messages to a colle
 a comparatively very high level amount of processing compared to other tasks, this code should be *very* optimized
 */
 import {
-  APIEmbed,
   Events,
-  Guild,
   Message,
-  MessageActionRowComponent,
   TextChannel,
-  Channel,
   CategoryChannel,
   StringSelectMenuBuilder,
-  StringSelectMenuComponent,
   StringSelectMenuOptionBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  Collector,
   ComponentType,
-  CategoryChildChannel,
   GuildBasedChannel,
   ChannelType,
   StringSelectMenuInteraction,
   ButtonInteraction,
+  BaseChannel,
 } from 'discord.js';
 import * as util from '../core/util.js';
 
@@ -100,12 +94,10 @@ class MessageRingBuffer {
       this.readCursorIndex = 0;
       this.writeCursorIndex = 0;
       this.buf.length -= this.reallocationStepSize;
-      util.eventLogger.logEvent(
-        {
-          category: util.EventCategory.Info,
-          description: `Shrunk message ringbuffer size (new size: ${this.buf.length})`,
-          location: 'channel-logging',
-        },
+      util.logEvent(
+        util.EventCategory.Info,
+        `Shrunk message ringbuffer size (new size: ${this.buf.length})`,
+        'channel-logging',
         3
       );
     }
@@ -169,12 +161,10 @@ class MessageRingBuffer {
       }
     }
 
-    util.eventLogger.logEvent(
-      {
-        category: util.EventCategory.Info,
-        location: 'channel-logging',
-        description: `Expanded ringbuffer size (current size: ${this.buf.length})`,
-      },
+    util.logEvent(
+      util.EventCategory.Info,
+      'channel-logging',
+      `Expanded ringbuffer size (current size: ${this.buf.length})`,
       3
     );
   }
@@ -273,7 +263,7 @@ const populate = new util.SubModule(
     // text channels have a type of 0
     /** A list of all channels not in the configured logging category */
     const channels = util.guild.channels.cache.filter(
-      (ch: any) => ch.type === 0
+      (ch: BaseChannel) => ch.type === 0
     );
     // remove all channels in the logging category
     for (const loggingChannel of loggingChannels) {
@@ -398,6 +388,7 @@ const populate = new util.SubModule(
                 // By submitting all of the promises at once, and then awaiting after submission,
                 // you can save a lot of time over submitting channel creation one at a time
                 // and awaiting in between each channel
+                // eslint-disable-next-line no-case-declarations
                 const jobs = [];
                 for (const channel of unloggedChannels) {
                   const newChannel = util.guild.channels.create({

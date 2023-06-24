@@ -9,7 +9,7 @@ import {
 } from 'discord.js';
 
 import {botConfig} from './config.js';
-import {EventCategory, eventLogger} from './logger.js';
+import {EventCategory, logEvent} from './logger.js';
 import {RootModule, SubModule} from './modules.js';
 import {embed} from './discord.js';
 import path from 'path';
@@ -43,29 +43,18 @@ const modules: RootModule[] = [];
 
 // This allows catching and handling of async errors, which would normally fully error
 process.on('unhandledRejection', (error: Error) => {
-  eventLogger.logEvent(
-    {
-      category: EventCategory.Error,
-      location: 'core',
-      description: `An unhandled async error occurred: \`\`\`\n${error.name}\n${error.stack}\`\`\``,
-    },
+  logEvent(
+    EventCategory.Error,
+    'core',
+    `An unhandled async error occurred: \`\`\`\n${error.name}\n${error.stack}\`\`\``,
     1
   );
 });
 
 // When the bot initializes a connection with the discord API
-client.once(Events.ClientReady, async clientEvent => {
-  // let the logger know it's ok to try and start logging events in Discord
-  eventLogger.discordInitialized = true;
+client.once(Events.ClientReady, async () => {
   guild = client.guilds.cache.first()!;
-  eventLogger.logEvent(
-    {
-      category: EventCategory.Info,
-      location: 'core',
-      description: 'Initialized Discord connection',
-    },
-    2
-  );
+  logEvent(EventCategory.Info, 'core', 'Initialized Discord connection', 2);
 
   // annoyingly, readdir() calls are relative to the node process, not the file making the call,
   // so it's resolved manually to make this more robust
@@ -128,7 +117,7 @@ async function importModulesFromFile(path: string): Promise<void> {
 function listen(): void {
   client.on(Events.MessageCreate, async message => {
     // Check to see if the message starts with the correct prefix and wasn't sent by the bot (test user aside)
-    if (message.author.bot && message.author.id != botConfig.testing.userID)
+    if (message.author.bot && message.author.id !== botConfig.testing.userID)
       return;
     if (!botConfig.prefixes.includes(message.content.charAt(0))) return;
 
@@ -208,7 +197,7 @@ function listen(): void {
       // no submodules, it's safe to execute the command and return
       // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
       for (const dep of currentModule.dependencies) {
-        const depResult: any = await dep.resolve();
+        const depResult: unknown = await dep.resolve();
         // .resolve() returns null if resolution failed
         if (depResult === null) {
           void message.reply({
@@ -230,18 +219,15 @@ function listen(): void {
           }
         })
         .catch((err: Error) => {
-          eventLogger.logEvent(
-            {
-              category: EventCategory.Error,
-              location: 'core',
-              description:
-                `Encountered an error running command ${currentModule.command}:` +
-                '```' +
-                err.name +
-                '\n' +
-                err.stack +
-                '```',
-            },
+          logEvent(
+            EventCategory.Error,
+            'core',
+            `Encountered an error running command ${currentModule.command}:` +
+              '```' +
+              err.name +
+              '\n' +
+              err.stack +
+              '```',
             3
           );
           void message.reply({
@@ -303,12 +289,10 @@ function generateHelpMessageForModule(
  */
 async function initializeModules(): Promise<void> {
   for (const mod of modules) {
-    // TODO: concurrent-erize this so that more modules are resolved
+    // TODO: make this more concurrent so that more modules are resolved
     // while we wait for dep resolution
-    /** If a dependency fails to resolve, this is set to true and the module is not initialized */
-    const missingDependency = false;
     // by starting all of the functions at once then awaiting completion, it's considerably more efficient
-    const jobs: Array<Promise<any>> = [];
+    const jobs: Array<Promise<unknown>> = [];
     for (const dependency of mod.dependencies) {
       jobs.push(dependency.resolve());
     }
@@ -317,31 +301,25 @@ async function initializeModules(): Promise<void> {
       continue;
     }
     if (mod.enabled) {
-      eventLogger.logEvent(
-        {
-          category: EventCategory.Info,
-          location: 'core',
-          description: `Initializing module: ${mod.command}`,
-        },
+      logEvent(
+        EventCategory.Info,
+        'core',
+        `Initializing module: ${mod.command}`,
         3
       );
       mod.initialize().catch(() => {
-        eventLogger.logEvent(
-          {
-            category: EventCategory.Error,
-            location: 'core',
-            description: `Module \`${mod.command}\` ran into an error during initialization call. This module will be disabled`,
-          },
+        logEvent(
+          EventCategory.Error,
+          'core',
+          `Module \`${mod.command}\` ran into an error during initialization call. This module will be disabled`,
           1
         );
       });
     } else {
-      eventLogger.logEvent(
-        {
-          category: EventCategory.Info,
-          location: 'core',
-          description: 'Encountered disabled module: ' + mod.command,
-        },
+      logEvent(
+        EventCategory.Info,
+        'core',
+        'Encountered disabled module: ' + mod.command,
         3
       );
     }

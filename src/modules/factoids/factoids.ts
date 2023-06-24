@@ -62,14 +62,10 @@ factoid.onInitialize(async () => {
     }
     // match found, send factoid
     await message.reply(queryResult.message).catch(err => {
-      util.eventLogger.logEvent(
-        {
-          category: util.EventCategory.Error,
-          location: 'factoid',
-          description: `An error was encountered sending factoid: ${
-            (err as Error).name
-          }`,
-        },
+      util.logEvent(
+        util.EventCategory.Error,
+        'factoid',
+        `An error was encountered sending factoid: ${(err as Error).name}`,
         3
       );
     });
@@ -103,14 +99,10 @@ factoid.registerSubModule(
       }
 
       await msg.reply(locatedFactoid.message).catch(err => {
-        util.eventLogger.logEvent(
-          {
-            category: util.EventCategory.Error,
-            location: 'factoid',
-            description: `An error was encountered sending factoid: ${
-              (err as Error).name
-            }`,
-          },
+        util.logEvent(
+          util.EventCategory.Error,
+          'factoid',
+          `An error was encountered sending factoid: ${(err as Error).name}`,
           3
         );
       });
