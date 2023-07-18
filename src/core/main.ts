@@ -6,12 +6,17 @@ import {
   GatewayIntentBits,
   APIEmbed,
   Guild,
+  ChatInputCommandInteraction,
 } from 'discord.js';
 
 import {botConfig} from './config.js';
 import {EventCategory, logEvent} from './logger.js';
 import {RootModule, SubModule} from './modules.js';
-import {embed} from './discord.js';
+import {
+  embed,
+  generateSlashCommandForModule,
+  registerSlashCommandSet,
+} from './discord.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
 
@@ -39,7 +44,7 @@ export const client = new Client({
 // non-null assertion: if the bot isn't in a server, than throwing an error can be considered reasonable behavior
 export let guild: Guild = botConfig.readConfigFromFileSystem();
 
-const modules: RootModule[] = [];
+export const modules: RootModule[] = [];
 
 // This allows catching and handling of async errors, which would normally fully error
 process.on('unhandledRejection', (error: Error) => {
@@ -56,6 +61,7 @@ client.once(Events.ClientReady, async () => {
   guild = client.guilds.cache.first()!;
   logEvent(EventCategory.Info, 'core', 'Initialized Discord connection', 2);
 
+  // TODO: move module imports to a function
   // annoyingly, readdir() calls are relative to the node process, not the file making the call,
   // so it's resolved manually to make this more robust
   const moduleLocation = fileURLToPath(
@@ -86,9 +92,25 @@ client.once(Events.ClientReady, async () => {
     }
   }
 
+  const newSlashCommands = [];
+  for (const module of modules) {
+    newSlashCommands.push(generateSlashCommandForModule(module));
+  }
+  // TODO: unregister slash commands if disabled, and detect any changes to slash commands
+  await registerSlashCommandSet(await Promise.all(newSlashCommands));
   await initializeModules();
-  listen();
+  // TODO: only listen if a prefix, or slash commands enabled
+  listenForSlashCommands();
+  logEvent(
+    EventCategory.Info,
+    'core',
+    'Initialization completed, ready to receive commands.',
+    2
+  );
 });
+
+// Login to discord
+client.login(botConfig.authToken);
 
 /**
  * This function imports the default export from the file specified, and pushes each module to
@@ -111,147 +133,180 @@ async function importModulesFromFile(path: string): Promise<void> {
 }
 
 /**
- * Start a listener that checks to see if a user called a command, and then check
- *  `modules` for the appropriate code to run
- */
-function listen(): void {
-  client.on(Events.MessageCreate, async message => {
-    // Check to see if the message starts with the correct prefix and wasn't sent by the bot (test user aside)
-    if (message.author.bot && message.author.id !== botConfig.testing.userID)
-      return;
-    if (!botConfig.prefixes.includes(message.content.charAt(0))) return;
-
-    // message content split by spaces, with the prefix removed from the first item
-    const tokens = message.content.split(' ');
-    tokens[0] = tokens[0].substring(1);
-
-    /*
-     * If tokens[0] a valid reference to the top level of any module in modules,
-     * set currentMod to the matching module.
-     * Check tokens[1] against all submodules of currentMod.
-     * If match, increment token checker and set currentMod to that submodule
-     * if no match is found, or a module has no more submodules, attempt to execute that command
-     */
-
-    /**
-     * As the command is processed, the command used is dumped here.
-     */
-    const commandUsed: string[] = [];
-
-    // initial check to see if first term refers to a module in the `modules` array
-    /**
-     * Try to get a module from the `modules` list with the first token. If it's found, the first token is removed.
-     *
-     * @returns Will return nothing if it doesn't find a module, or return the module it found
-     */
-    function getModWithFirstToken(): RootModule | void {
-      const token = tokens[0].toLowerCase();
-      for (const mod of modules) {
-        if (token === mod.command || mod.aliases.includes(token)) {
-          commandUsed.push(tokens.shift()!);
-          return mod;
-        }
-      }
-    }
-
-    const foundRootModule = getModWithFirstToken();
-    if (foundRootModule === undefined) {
+ * Start an event listener that executes received slash commands
+ * https://discordjs.guide/creating-your-bot/command-handling.html#receiving-command-interactions */
+function listenForSlashCommands() {
+  client.on(Events.InteractionCreate, interaction => {
+    if (!interaction.isChatInputCommand()) {
       return;
     }
+    const command = interaction.commandName;
+    const group = interaction.options.getSubcommandGroup();
+    const subcommand = interaction.options.getSubcommand();
 
-    /**
-     * This module is recursively set as submodules are searched for
-     */
-    let currentModule: RootModule | SubModule = foundRootModule;
+    interaction.reply({content: "everything is broken and i'm dying"});
+    const commandPath: string[] = [];
+    commandPath.push(command);
+    if (group !== null) {
+      commandPath.push(group);
+    }
+    if (subcommand !== null) {
+      commandPath.push(subcommand);
+    }
+    const resolutionResult = resolveModule(commandPath);
+    console.log(resolutionResult);
+    if (resolutionResult.foundModule !== null) {
+      executeModule(resolutionResult.foundModule, interaction);
+    }
+  });
+}
 
-    // this code will resolve currentModule to the last valid module in the list of tokens,
-    // removing the first token and adding it to
-    while (tokens.length > 0) {
-      // lowercase version of the token used for module resolution
-      const token = tokens[0].toLowerCase();
-      // first check to see if the first token in the list references a module or any of its aliases
-      for (const mod of currentModule.submodules) {
-        if (token === mod.command || mod.aliases.includes(token)) {
-          currentModule = mod;
-          // remove the first token from tokens
-          // non-null assertion: this code is only reachable if tokens[0] is set
-          // the first element in the tokens array is used over `token` because the array preserves case,
-          // while `token` does not
-          commandUsed.push(tokens.shift()!);
-          continue;
-        }
+interface ModuleResolutionResult {
+  /** The module found, or null, if no module was found at all */
+  foundModule: RootModule | SubModule | null;
+  /** The list of tokens that points to the module */
+  modulePath: string[];
+  /** Everything after the module path that is not a part of the path, should be treated as module arguments. */
+  leftoverTokens: string[];
+}
+
+/** Sort of like a file path, given a list of tokens, look through the modules array and find the module the list points to */
+function resolveModule(tokens: string[]): ModuleResolutionResult {
+  /*
+   * If tokens[0] a valid reference to the top level of any module in modules,
+   * set currentMod to the matching module.
+   * Check tokens[1] against all submodules of currentMod.
+   * If match, increment token checker and set currentMod to that submodule
+   * if no match is found, or a module has no more submodules, attempt to execute that command
+   */
+
+  /**
+   * As the command is processed, every time the next token points to a valid module, it's dumped here
+   */
+  const modulePath: string[] = [];
+
+  // initial check to see if first term refers to a module in the `modules` array
+  /**
+   * Try to get a module from the `modules` list with the first token. If it's found, the first token is removed.
+   *
+   * @returns Will return nothing if it doesn't find a module, or return the module it found
+   */
+  function getModWithFirstToken(): RootModule | void {
+    const token = tokens[0].toLowerCase();
+    for (const mod of modules) {
+      if (token === mod.name) {
+        modulePath.push(tokens.shift()!);
+        return mod;
       }
-      // the token doesn't reference a command, move on, stop trying to resolve
+    }
+  }
+
+  const foundRootModule = getModWithFirstToken();
+  if (foundRootModule === undefined) {
+    return {
+      foundModule: null,
+      modulePath: modulePath,
+      leftoverTokens: tokens,
+    };
+  }
+
+  /**
+   * This module is recursively set as submodules are searched for
+   */
+  let currentModule: RootModule | SubModule = foundRootModule;
+
+  // this code will resolve currentModule to the last valid module in the list of tokens,
+  // removing the first token and adding it to
+  while (tokens.length > 0) {
+    // lowercase version of the token used for module resolution
+    const token = tokens[0].toLowerCase();
+    let moduleFound = false;
+    // first check to see if the first token in the list references a module
+    // The below check is needed because it's apparently a 'design limitation' of typescript.
+    // https://github.com/microsoft/TypeScript/issues/43047
+    // @ts-expect-error 7022
+    for (const mod of currentModule.submodules) {
+      if (token === mod.command) {
+        currentModule = mod;
+        // remove the first token from tokens
+        // non-null assertion: this code is only reachable if tokens[0] is set
+        // the first element in the tokens array is used over `token` because the array preserves case,
+        // while `token` does not
+        modulePath.push(tokens.shift()!);
+        moduleFound = true;
+        break;
+      }
+    }
+    // the token doesn't reference a command, move on, stop trying to resolve
+    if (!moduleFound) {
       break;
     }
+  }
 
-    // if we've reached this point, then everything in `commandUsed` points to a valid command,
-    /*
-     * There are two logical flows that should take place now:
-     * - Display help message if the last valid found module (currentModule) has submodules (don't execute to prevent unintended behavior)
-     * - If the last valid found module (currentModule) has *no* submodules, then the user is referencing it as a command,
-     * and everything after it is a command argument
-     */
-    if (currentModule.submodules.length === 0) {
-      // TODO: move this to a separate function
-      // no submodules, it's safe to execute the command and return
-      // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
-      for (const dep of currentModule.dependencies) {
-        const depResult: unknown = await dep.resolve();
-        // .resolve() returns null if resolution failed
-        if (depResult === null) {
-          void message.reply({
-            embeds: [
-              embed.errorEmbed(
-                `Unable to execute command because dependency "${dep.name}" could not be resolved`
-              ),
-            ],
-          });
-          return;
-        }
+  return {
+    foundModule: currentModule,
+    modulePath: modulePath,
+    leftoverTokens: tokens,
+  };
+}
+
+/** Resolve all dependencies for a module, and then execute it, responding to the user with an error if needed */
+async function executeModule(
+  module: RootModule | SubModule,
+  interaction: ChatInputCommandInteraction
+) {
+  // TODO: move this to a separate function
+  // no submodules, it's safe to execute the command and return
+  // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
+  for (const dep of module.dependencies) {
+    const depResult: unknown = await dep.resolve();
+    // .resolve() returns null if resolution failed
+    if (depResult === null) {
+      void interaction.reply({
+        embeds: [
+          embed.errorEmbed(
+            `Unable to execute command because dependency "${dep.name}" could not be resolved`
+          ),
+        ],
+      });
+      return;
+    }
+  }
+  // There may be possible minor perf/mem overhead from calling Array.from to un-readonly the array,
+  // could be considered for minor optimizations
+  module
+    .executeCommand(Array.from(interaction.options.data), interaction)
+    .then((value: void | APIEmbed) => {
+      // enable modules to return an embed
+      if (value !== undefined) {
+        void interaction.reply({embeds: [value!]});
       }
-      currentModule
-        .executeCommand(tokens.join(' '), message)
-        .then((value: void | APIEmbed) => {
-          // enable modules to return an embed
-          if (value !== undefined) {
-            void message.reply({embeds: [value!]});
-          }
-        })
-        .catch((err: Error) => {
-          logEvent(
-            EventCategory.Error,
-            'core',
-            `Encountered an error running command ${currentModule.command}:` +
+    })
+    .catch((err: Error) => {
+      logEvent(
+        EventCategory.Error,
+        'core',
+        `Encountered an error running command ${module.name}:` +
+          '```' +
+          err.name +
+          '\n' +
+          err.stack +
+          '```',
+        3
+      );
+      void interaction.reply({
+        embeds: [
+          embed.errorEmbed(
+            'Command returned an error:\n' +
               '```' +
               err.name +
               '\n' +
               err.stack +
-              '```',
-            3
-          );
-          void message.reply({
-            embeds: [
-              embed.errorEmbed(
-                'Command returned an error:\n' +
-                  '```' +
-                  err.name +
-                  '\n' +
-                  err.stack +
-                  '```'
-              ),
-            ],
-          });
-        });
-    } else {
-      // there are submodules, display help message
-      void message.reply({
-        embeds: [
-          generateHelpMessageForModule(currentModule, commandUsed.join(' ')),
+              '```'
+          ),
         ],
       });
-    }
-  });
+    });
 }
 
 /**
@@ -261,7 +316,9 @@ function listen(): void {
  * @param priorCommands If specified, this will format the help message to make the command include these.
  * So if the user typed `foo bar baz`, and you want to generate a help message, you can make help strings
  * include the full command
+ * @deprecated I don't think this is needed anymore with the slash command migration
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function generateHelpMessageForModule(
   mod: SubModule | RootModule,
   priorCommands = ''
@@ -272,8 +329,8 @@ function generateHelpMessageForModule(
   const helpFields: APIEmbedField[] = [];
   for (const submod of mod.submodules) {
     helpFields.push({
-      name: `\`${priorCommands} ${submod.command}\``,
-      value: `${submod.helpMessage} \n(${submod.submodules.length} subcommands)`,
+      name: `\`${priorCommands} ${submod.name}\``,
+      value: `${submod.description} \n(${submod.submodules.length} subcommands)`,
     });
   }
 
@@ -288,43 +345,51 @@ function generateHelpMessageForModule(
  * Iterate over the `modules` list and call `initialize()` on each module in the list
  */
 async function initializeModules(): Promise<void> {
+  // enable concurrent initialization
+  const initializationJobs: Promise<void>[] = [];
   for (const mod of modules) {
-    // TODO: make this more concurrent so that more modules are resolved
-    // while we wait for dep resolution
-    // by starting all of the functions at once then awaiting completion, it's considerably more efficient
-    const jobs: Array<Promise<unknown>> = [];
-    for (const dependency of mod.dependencies) {
-      jobs.push(dependency.resolve());
+    initializationJobs.push(initializeModule(mod));
+  }
+  await Promise.allSettled(initializationJobs);
+}
+
+/** Given a root module, initialize dependencies and call .initialize(), if the module is enabled. */
+async function initializeModule(module: RootModule): Promise<void> {
+  if (module.enabled) {
+    // by starting all of the resolve() calls at once then awaiting completion, it's considerably more efficient
+    const dependencyJobs: Array<Promise<unknown>> = [];
+    for (const dependency of module.dependencies) {
+      dependencyJobs.push(dependency.resolve());
     }
-    const jobResults = await Promise.all(jobs);
+    const jobResults = await Promise.all(dependencyJobs);
+    // if resolution failed
     if (jobResults.includes(null)) {
-      continue;
+      return;
     }
-    if (mod.enabled) {
-      logEvent(
-        EventCategory.Info,
-        'core',
-        `Initializing module: ${mod.command}`,
-        3
-      );
-      mod.initialize().catch(() => {
+    await module
+      .initialize()
+      .then(() => {
+        logEvent(
+          EventCategory.Info,
+          'core',
+          `Initialized module: ${module.name}`,
+          3
+        );
+      })
+      .catch(() => {
         logEvent(
           EventCategory.Error,
           'core',
-          `Module \`${mod.command}\` ran into an error during initialization call. This module will be disabled`,
+          `Module \`${module.name}\` ran into an error during initialization call. This module will be disabled`,
           1
         );
       });
-    } else {
-      logEvent(
-        EventCategory.Info,
-        'core',
-        'Encountered disabled module: ' + mod.command,
-        3
-      );
-    }
+  } else {
+    logEvent(
+      EventCategory.Info,
+      'core',
+      'Encountered disabled module: ' + module.name,
+      3
+    );
   }
 }
-
-// Login to discord
-client.login(botConfig.authToken);

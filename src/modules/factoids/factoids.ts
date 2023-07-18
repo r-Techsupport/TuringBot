@@ -27,6 +27,7 @@ const factoid = new util.RootModule(
   'Manage or fetch user generated messages',
   [util.mongo]
 );
+// TODO: implement an LRU factoid cache
 
 factoid.onInitialize(async () => {
   // these are defined outside so that they don't get redefined every time a
@@ -76,8 +77,17 @@ factoid.registerSubModule(
   new util.SubModule(
     'get',
     'Fetch a factoid from the database and return it',
+    [
+      {
+        type: util.ModuleOptionType.String,
+        name: 'factoid',
+        description: 'The factoid to fetch',
+        required: true,
+      },
+    ],
     async (args, msg) => {
-      const factoidName: string | undefined = args?.split(' ')[0];
+      const factoidName: string =
+        (args.filter(arg => arg.name === 'factoid')[0].value as string) ?? '';
       if (factoidName === '') {
         return util.embed.errorEmbed(
           'No factoid name provided, please specify a factoid.'
@@ -114,12 +124,28 @@ factoid.registerSubModule(
   new util.SubModule(
     'remember',
     'Register a new factoid',
-    async (args, msg) => {
+    [
+      {
+        type: util.ModuleOptionType.String,
+        name: 'name',
+        description: 'The name of the factoid',
+        required: true,
+      },
+      {
+        type: util.ModuleOptionType.Attachment,
+        name: 'factoid',
+        description: 'A .json describing a valid factoid',
+        required: true,
+      },
+    ],
+    async (args, interaction) => {
       const db: Db = util.mongo.fetchValue();
       const factoids = db.collection<Factoid>(FACTOID_COLLECTION_NAME);
       // first see if they uploaded a factoid
       // the json upload
-      const uploadedFactoid: Attachment | undefined = msg.attachments.first();
+      const uploadedFactoid: Attachment | undefined = args.filter(
+        arg => arg.name === 'factoid'
+      )[0].attachment;
       if (uploadedFactoid === undefined) {
         return util.embed.errorEmbed('No attachments provided');
       }
@@ -156,7 +182,11 @@ factoid.registerSubModule(
       }
       // the structure sent to the database
       const factoid: Factoid = {
-        name: args.split(' ')[0],
+        // the option is *required* so this option should always exist,
+        // but you're not supposed use non-null assertion after filter calls
+        name:
+          args.filter(arg => arg.name === 'name')[0].value?.toString() ??
+          'somethingBrokeThisShouldBeImpossible',
         aliases: [],
         hidden: false,
         message: JSON.parse(serializedFactoid),
@@ -183,30 +213,40 @@ factoid.registerSubModule(
 );
 
 factoid.registerSubModule(
-  new util.SubModule('forget', 'Remove a factoid', async args => {
-    const factoidName = args?.split(' ')[0];
-    if (factoidName === '') {
-      return util.embed.errorEmbed(
-        'No factoid name provided, please specify a factoid'
+  new util.SubModule(
+    'forget',
+    'Remove a factoid',
+    [
+      {
+        type: util.ModuleOptionType.String,
+        name: 'factoid',
+        description: 'The factoid to forget',
+        required: true,
+      },
+    ],
+    async args => {
+      const factoidName = args.find(arg => arg.name === 'factoid')!
+        .value as string;
+      const db: Db = util.mongo.fetchValue();
+      const factoids: Collection<Factoid> = db.collection(
+        FACTOID_COLLECTION_NAME
       );
-    }
-    const db: Db = util.mongo.fetchValue();
-    const factoids: Collection<Factoid> = db.collection(
-      FACTOID_COLLECTION_NAME
-    );
-    const result: DeleteResult = await factoids.deleteOne({name: factoidName});
+      const result: DeleteResult = await factoids.deleteOne({
+        name: factoidName,
+      });
 
-    if (result.deletedCount === 0) {
-      return util.embed.errorEmbed(
-        `Deletion failed, unable to find factoid \`${factoidName}\``
-      );
-    } else {
-      // if stuff was deleted, than we probably found the factoid, return success
-      return util.embed.successEmbed(
-        `Factoid successfully deleted: \`${factoidName}\``
-      );
+      if (result.deletedCount === 0) {
+        return util.embed.errorEmbed(
+          `Deletion failed, unable to find factoid \`${factoidName}\``
+        );
+      } else {
+        // if stuff was deleted, than we probably found the factoid, return success
+        return util.embed.successEmbed(
+          `Factoid successfully deleted: \`${factoidName}\``
+        );
+      }
     }
-  })
+  )
 );
 
 factoid.registerSubModule(
@@ -215,5 +255,13 @@ factoid.registerSubModule(
 factoid.registerSubModule(
   new util.SubModule('all', 'Generate a list of all factoids as a webpage')
 );
+
+// NOTE: THE BELOW IS TEMPORARY AS A TEST
+const ping = new util.SubModule('ping', 'ping the ping');
+const pong = new util.SubModule('pong', 'pong the pong', [], async () => {
+  console.log('hee heee');
+});
+factoid.registerSubModule(ping);
+ping.registerSubmodule(pong);
 
 export default factoid;

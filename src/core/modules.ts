@@ -5,7 +5,85 @@
 
 import {EventCategory, logEvent} from './logger.js';
 import {botConfig} from './config.js';
-import {APIEmbed, Message} from 'discord.js';
+import {
+  APIApplicationCommandOptionChoice,
+  APIEmbed,
+  ChatInputCommandInteraction,
+  CommandInteractionOption,
+} from 'discord.js';
+
+/**
+ * Possible valid types for a slash command input
+ * @see {@link https://discord.js.org/docs/packages/builders/stable/SlashCommandBuilder:Class#/docs/builders/main/class/SlashCommandBuilder}
+ *
+ * (discord docs)
+ *
+ * https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
+ *
+ * Refer to the `.add*Option()` methods
+ */
+export enum ModuleOptionType {
+  Attachment,
+  Boolean,
+  Channel,
+  Integer,
+  Mentionable,
+  Number,
+  Role,
+  String,
+  User,
+}
+
+/**
+ * When slash commands are registered, you can have your slash command accept input with an
+ * [Option](https://discordjs.guide/slash-commands/advanced-creation.html#adding-options).
+ * Any options specified in the module constructor will be passed to the execution function.
+ */
+export interface ModuleInputOption {
+  /**
+   * The type of input you'd like the option to receive.
+   * You might want to specify a string, or an integer,
+   * or any of the other members of {@link ModuleOptionType}
+   */
+  type: ModuleOptionType;
+  /**
+   * The `name` field of a slash command option.
+   * This option is required.
+   *
+   * The supplied string **MUST** comply with the following regex:
+   *
+   * `/^[-_\p{L}\p{N}\p{sc=Deva}\p{sc=Thai}]{1,32}$/u`
+   *
+   * Test different names [here](https://regexr.com/7gu4v).
+   *
+   * I'm unsure why Discord requires this, or why discord.js's regex doesn't match
+   * Discord's, but see [here](https://discord.com/developers/docs/interactions/application-commands#application-command-object)
+   * for the exact phrasing.
+   */
+  name: string;
+  /**
+   * A short message that appears below the name of an option.
+   */
+  description: string;
+  /**
+   * If set to true, the user won't be allowed to submit the command unless this option is populated.
+   *
+   * Defaults to `false` if not set.
+   */
+  required?: boolean;
+  /**
+   * If you want to allow the user to select from up to 25 different predetermined options,
+   * you can define a list of {@link ApplicationCommandOptionChoiceData}s
+   *
+   * Autocomplete *cannot* be set to true if you have defined choices, and this
+   * only applies for string, integer, and number options
+   */
+  choices?: APIApplicationCommandOptionChoice[];
+  /**
+   * TODO: autocomplete docstring and other thing
+   * https://discordjs.guide/slash-commands/autocomplete.html#responding-to-autocomplete-interactions
+   */
+}
 
 interface ModuleConfig {
   enabled: boolean;
@@ -13,6 +91,13 @@ interface ModuleConfig {
   [customProperties: string]: any;
 }
 
+/** The function run when a command is called. If an embed is returned, it's automatically sent as a response*/
+type ModuleCommandFunction = (
+  args: CommandInteractionOption[],
+  interaction: ChatInputCommandInteraction
+) => Promise<void | APIEmbed>;
+
+// TODO: maybe separate help message and usage strings?
 /**
  * This allows extension of the bot's initial functionality. Almost all discord facing functionality should be implemented as a module
  * @param command The key phrase that references this module. There must be an extension config key matching this, or the module will be disabled.
@@ -24,17 +109,15 @@ export class BaseModule {
   /**
    * The case insensitive name you want to use to trigger the command. If the command was `foo`, you could type the configured prefix, followed by foo
    */
-  readonly command: string;
+  readonly name: string;
 
   /**
-   * Any alternative phrases you want to trigger the command. If the command was `foobar` you could maybe use `fb` or `f`
+   * A string under 100 chars that explains your slash command.
+   * A good description may read something like "Kick a member",
+   * or "Fetch google search results", where a bad description might be vague,
+   * and unhelpful, like "The google slash command", or "google".
    */
-  readonly aliases: string[] = [];
-
-  /**
-   * This message will be displayed when the `help` utility is called, and when a command that has subcommands is referenced
-   */
-  readonly helpMessage: string;
+  readonly description: string;
 
   /**
    * A list of things needed for this module to run
@@ -44,13 +127,15 @@ export class BaseModule {
   dependencies: Dependency[] = [];
 
   /**
+   * A list of input options that are registered with the slash command, and then passed to the command during execution as args.
+   */
+  options: ModuleInputOption[] = [];
+
+  /**
    * Call this whenever you want to act on a command use. If you're just developing the module, set this with `onCommandExecute()`, and
    * the actual execution will be handled by the core.
    */
-  executeCommand: (
-    args: string | undefined,
-    msg: Message
-  ) => Promise<void | APIEmbed> = async () => {};
+  executeCommand: ModuleCommandFunction = async () => {};
 
   /**
    * Whether or not the `initialize()` call was completed. If your initialization function never returns, you need to manually
@@ -82,14 +167,12 @@ export class BaseModule {
   constructor(
     command: string,
     helpMessage: string,
-    onCommandExecute?: (
-      args: string | undefined,
-      msg: Message
-    ) => Promise<void | APIEmbed>
-    //       rootModuleName?: string
+    options?: ModuleInputOption[],
+    onCommandExecute?: ModuleCommandFunction
   ) {
-    this.command = command;
-    this.helpMessage = helpMessage;
+    this.name = command;
+    this.description = helpMessage;
+    this.options = options ?? [];
     // the default behavior for this is to do nothing
     if (this.onCommandExecute) {
       this.onCommandExecute(onCommandExecute!);
@@ -104,12 +187,8 @@ export class BaseModule {
    * @param functionToCall this function gets passed the args (everything past past the command usage),
    * and a [message](https://discord.js.org/#/docs/discord.js/main/class/Message) handle
    */
-  onCommandExecute(
-    functionToCall: (
-      args: string | undefined,
-      msg: Message
-    ) => Promise<void | APIEmbed>
-  ) {
+  onCommandExecute(functionToCall: ModuleCommandFunction) {
+    // This could be used to wrap extra behavior into command execution
     this.executeCommand = functionToCall;
   }
 
@@ -128,16 +207,15 @@ export class RootModule extends BaseModule {
   enabled = false;
 
   // TODO: docstrings
+  // TODO: have one overload for a group, and one overload for the executable version of the command
   constructor(
-    command: string,
-    helpMessage: string,
+    name: string,
+    description: string,
     dependencies: Dependency[],
-    onCommandExecute?: (
-      args: string | undefined,
-      msg: Message
-    ) => Promise<void | APIEmbed>
+    options?: ModuleInputOption[],
+    onCommandExecute?: ModuleCommandFunction
   ) {
-    super(command, helpMessage, onCommandExecute);
+    super(name, description, options ?? [], onCommandExecute);
     this.dependencies = dependencies;
     // the preset for this is a "safe" default,
     // so we just don't set it at all
@@ -145,14 +223,14 @@ export class RootModule extends BaseModule {
       this.onCommandExecute(onCommandExecute);
     }
     // make sure the config exists
-    if (this.command in botConfig.modules) {
-      this.config = botConfig.modules[this.command];
+    if (this.name in botConfig.modules) {
+      this.config = botConfig.modules[this.name];
       this.enabled = this.config.enabled;
     } else {
       logEvent(
         EventCategory.Warning,
         'core',
-        `No config option found for "${this.command}" in the config,` +
+        `No config option found for "${this.name}" in the config,` +
           'this module will be disabled.',
         1
       );
@@ -171,7 +249,7 @@ export class RootModule extends BaseModule {
    * @param submoduleToRegister Submodule you'd like to add to the current Module
    */
   registerSubModule(submoduleToRegister: SubModule): void {
-    submoduleToRegister.rootModuleName = this.command;
+    submoduleToRegister.rootModuleName = this.name;
     // sort of a non-null assertion, but null checks happen for the root module,
     // and since all subcommands are disabled, we don't need to worry about initialization.
     submoduleToRegister.config = this.config;
@@ -197,12 +275,10 @@ export class SubModule extends BaseModule {
   constructor(
     command: string,
     helpMessage: string,
-    onCommandExecute?: (
-      args: string | undefined,
-      msg: Message
-    ) => Promise<void | APIEmbed>
+    options?: ModuleInputOption[],
+    onCommandExecute?: ModuleCommandFunction
   ) {
-    super(command, helpMessage, onCommandExecute);
+    super(command, helpMessage, options ?? [], onCommandExecute);
   }
 
   /**
@@ -232,11 +308,11 @@ export class Dependency {
   /**
    * The actual "thing" this whole class is talking about. If the dependency is an API key,
    *  then this might be a string containing that API key. If it's a database connection, it may
-   * be the client provided by a wrapper library over the API
+   * be a client provided by a wrapper library over the API
    * (for example, the [MongoDB client](https://mongodb.github.io/node-mongodb-native/api-generated/mongoclient.html)).
    *
    * This is marked private because we don't want people to directly try to read from the value, because
-   * then it won't go through all of the robust checks and such. To access this value,
+   * It's preferred that they use "smarter" methods to access this value,
    * use exposed methods like {@link resolve()}
    *
    * The resting state of this value is `null`. This means that no attempt has been made to resolve

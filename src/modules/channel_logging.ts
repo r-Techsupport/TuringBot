@@ -172,6 +172,7 @@ class MessageRingBuffer {
 const channelLogging = new util.RootModule(
   'logging',
   'Manage discord channel and thread logging',
+  [],
   []
 );
 
@@ -242,9 +243,17 @@ channelLogging.onInitialize(async () => {
 
 const populate = new util.SubModule(
   'populate',
-  'Fill the channel map in the config, and automatically start logging. ' +
-    "\nThis requires `loggingCategory` to be set. Takes a list of channel IDs that you don't want",
-  async (args, msg) => {
+  'Generate needed logging channels and populate the config',
+  [
+    {
+      type: util.ModuleOptionType.String,
+      name: 'blacklist',
+      description:
+        'A list of channels, separated by spaces that you want to add to the blacklist.',
+      required: false,
+    },
+  ],
+  async (args, interaction) => {
     const loggingCategory = util.guild.channels.cache.get(
       populate.config.loggingCategory
     ) as CategoryChannel;
@@ -281,9 +290,11 @@ const populate = new util.SubModule(
     // blacklisted channels are disabled by default
     let channelBlacklist: string[] = populate.config.channelBlacklist;
     // blacklisted channels should be passed as channel ids, separated by a space
-    if (args) {
+    const inputBlacklist = args.filter(option => option.name === 'blacklist')[0]
+      .value;
+    if (inputBlacklist !== undefined) {
       // possibly undefined: verified that args were passed first
-      for (const channel of args?.split(' ')) {
+      for (const channel of inputBlacklist as string) {
         channelBlacklist.push(channel);
       }
     }
@@ -325,7 +336,7 @@ const populate = new util.SubModule(
       confirmButton
     );
     /** this message contains the selection menu */
-    const botResponse = await msg.reply({
+    const botResponse = await interaction.reply({
       embeds: [
         util.embed.infoEmbed('Select channels to exclude from logging:'),
       ],
@@ -335,10 +346,10 @@ const populate = new util.SubModule(
     /**
      * This rather inelegant and badly function does basically everything, and is only in a function because it needs to be
      * done for a button interaction or a text select menu, with only minor deviations in between
-     * @param interaction Pass this from the interaction listener (https://discordjs.guide/message-components/interactions.html#component-collectors)
+     * @param menuInteraction Pass this from the interaction listener (https://discordjs.guide/message-components/interactions.html#component-collectors)
      */
     async function generateChannelsAndPopulateConfig(
-      interaction: StringSelectMenuInteraction | ButtonInteraction
+      menuInteraction: StringSelectMenuInteraction | ButtonInteraction
     ): Promise<void> {
       // blacklisted channels are dropped from the channels collection entirely,
       // and we pretend they don't exist from a logging perspective
@@ -376,12 +387,12 @@ const populate = new util.SubModule(
           .confirmEmbed(
             'New logging channels for these channels will be made:\n' +
               unloggedChannels.join('\n'),
-            msg
+            interaction
           )
           .then(async choice => {
             switch (choice) {
               case util.ConfirmEmbedResponse.Confirmed:
-                interaction.followUp({
+                menuInteraction.followUp({
                   embeds: [util.embed.infoEmbed('Generating new channels...')],
                   components: [],
                 });
@@ -408,7 +419,7 @@ const populate = new util.SubModule(
                 break;
 
               case util.ConfirmEmbedResponse.Denied:
-                interaction.followUp({
+                menuInteraction.followUp({
                   embeds: [
                     util.embed.infoEmbed(
                       'New channels will not be generated, moving on to config population.'
@@ -420,7 +431,7 @@ const populate = new util.SubModule(
             }
           });
       } else {
-        await interaction.followUp({
+        await menuInteraction.followUp({
           embeds: [
             util.embed.infoEmbed(
               'No new channels need generation, moving onto config updates...'
@@ -429,7 +440,7 @@ const populate = new util.SubModule(
         });
       }
 
-      await interaction.followUp({
+      await menuInteraction.followUp({
         embeds: [
           util.embed.infoEmbed(
             'Generating and applying the correct config options...'
@@ -461,7 +472,7 @@ const populate = new util.SubModule(
         ['modules', 'logging', 'channelMap'],
         channelMap
       );
-      interaction.followUp({
+      menuInteraction.followUp({
         embeds: [
           util.embed.successEmbed('Config updated and logging deployed.'),
         ],
@@ -470,7 +481,7 @@ const populate = new util.SubModule(
 
     const continueButtonListener = botResponse.createMessageComponentCollector({
       componentType: ComponentType.Button,
-      filter: i => msg.author.id === i.user.id,
+      filter: i => interaction.user.id === i.user.id,
       time: 60_000,
     });
 
@@ -494,7 +505,7 @@ const populate = new util.SubModule(
     // time is in MS
     const channelSelectListener = botResponse.createMessageComponentCollector({
       componentType: ComponentType.StringSelect,
-      filter: i => msg.author.id === i.user.id,
+      filter: i => interaction.user.id === i.user.id,
       time: 60_000,
     });
 

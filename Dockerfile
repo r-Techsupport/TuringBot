@@ -15,5 +15,5 @@ COPY config.jsonc ./config.jsonc
 COPY Makefile ./Makefile
 COPY target/ ./target/
 
-# Run it
-CMD ["make", "profile"]
+# Run it without compiling
+CMD ["make", "run"]
