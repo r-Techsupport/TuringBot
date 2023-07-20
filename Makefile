@@ -21,6 +21,10 @@ start: build
 # instead of the compiled js
 	node --enable-source-maps ./target/core/main.js 
 
+# Compile code and run unit tests https://nodejs.org/api/test.html#test-runner
+test: build
+	node --test ./target/test
+
 # Format whole project
 format:
 # https://github.com/google/gts

@@ -7,6 +7,7 @@ import {
   APIEmbed,
   Guild,
   ChatInputCommandInteraction,
+  CommandInteractionOption,
 } from 'discord.js';
 
 import {botConfig} from './config.js';
@@ -45,6 +46,8 @@ export const client = new Client({
 export let guild: Guild = botConfig.readConfigFromFileSystem();
 
 export const modules: RootModule[] = [];
+
+logEvent(EventCategory.Info, 'core', 'Starting...', 2);
 
 // This allows catching and handling of async errors, which would normally fully error
 process.on('unhandledRejection', (error: Error) => {
@@ -144,7 +147,6 @@ function listenForSlashCommands() {
     const group = interaction.options.getSubcommandGroup();
     const subcommand = interaction.options.getSubcommand();
 
-    interaction.reply({content: "everything is broken and i'm dying"});
     const commandPath: string[] = [];
     commandPath.push(command);
     if (group !== null) {
@@ -154,7 +156,6 @@ function listenForSlashCommands() {
       commandPath.push(subcommand);
     }
     const resolutionResult = resolveModule(commandPath);
-    console.log(resolutionResult);
     if (resolutionResult.foundModule !== null) {
       executeModule(resolutionResult.foundModule, interaction);
     }
@@ -171,7 +172,7 @@ interface ModuleResolutionResult {
 }
 
 /** Sort of like a file path, given a list of tokens, look through the modules array and find the module the list points to */
-function resolveModule(tokens: string[]): ModuleResolutionResult {
+export function resolveModule(tokens: string[]): ModuleResolutionResult {
   /*
    * If tokens[0] a valid reference to the top level of any module in modules,
    * set currentMod to the matching module.
@@ -226,7 +227,7 @@ function resolveModule(tokens: string[]): ModuleResolutionResult {
     // https://github.com/microsoft/TypeScript/issues/43047
     // @ts-expect-error 7022
     for (const mod of currentModule.submodules) {
-      if (token === mod.command) {
+      if (token === mod.name) {
         currentModule = mod;
         // remove the first token from tokens
         // non-null assertion: this code is only reachable if tokens[0] is set
@@ -272,10 +273,21 @@ async function executeModule(
       return;
     }
   }
-  // There may be possible minor perf/mem overhead from calling Array.from to un-readonly the array,
   // could be considered for minor optimizations
+  let options: CommandInteractionOption[];
+  // though a bit odd, the options are actually located at a different place in the object
+  // tree when a subcommand is used
+  const foundSubcommand = interaction.options.getSubcommand();
+  if (foundSubcommand !== undefined) {
+    options = interaction.options.data[0].options!;
+  } else {
+    options = Array.from(interaction.options.data);
+  }
+  // There may be possible minor perf/mem overhead from calling Array.from to un-readonly the array,
+  // TODO: figure out if a reply has already been sent, then use editReply() or followUp() instead,
+  // because you can only use reply() once per interaction
   module
-    .executeCommand(Array.from(interaction.options.data), interaction)
+    .executeCommand(Array.from(options), interaction)
     .then((value: void | APIEmbed) => {
       // enable modules to return an embed
       if (value !== undefined) {

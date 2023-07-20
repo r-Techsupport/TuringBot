@@ -77,7 +77,7 @@ export function logEvent(
   }
 
   // Check to see if we have a discord connection before logging to discord
-  if (!client.isReady) {
+  if (!client.isReady()) {
     return;
   }
   // this is used for the event channel and DMs
@@ -149,13 +149,14 @@ export function logEvent(
     }
   }
 }
+
 /**
  * Take in the given params and spit out a discord embed with the requisite event info
  * @param category {@link EventCategory} Event type
  * @param location Where the event occurred
  * @param description What happened
  */
-function generateEventEmbed(
+export function generateEventEmbed(
   category: EventCategory,
   location: string,
   description: string

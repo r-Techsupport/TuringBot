@@ -290,11 +290,10 @@ const populate = new util.SubModule(
     // blacklisted channels are disabled by default
     let channelBlacklist: string[] = populate.config.channelBlacklist;
     // blacklisted channels should be passed as channel ids, separated by a space
-    const inputBlacklist = args.filter(option => option.name === 'blacklist')[0]
-      .value;
+    const inputBlacklist = args.find(arg => arg.name === 'blacklist');
     if (inputBlacklist !== undefined) {
       // possibly undefined: verified that args were passed first
-      for (const channel of inputBlacklist as string) {
+      for (const channel of inputBlacklist.value as string) {
         channelBlacklist.push(channel);
       }
     }
@@ -460,7 +459,6 @@ const populate = new util.SubModule(
       // if a channel has a logging channel that starts with that channel's name, add the IDs to the channel map
       // This will silently not add channels that it doesn't find the appropriate channel for, because checks have already been made
       // to ensure that blacklisted channels can't be logged, and any channel that didn't exist could be created
-      console.log('generating channel map');
       for (const channel of channels) {
         for (const loggingChannel of loggingChannels) {
           if (loggingChannel.name.startsWith(channel[1].name)) {

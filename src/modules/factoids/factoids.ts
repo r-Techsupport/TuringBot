@@ -73,6 +73,7 @@ factoid.onInitialize(async () => {
   });
 });
 
+// TODO: use deferreply for all of these, on the off chance a reply takes over 3 secs
 factoid.registerSubModule(
   new util.SubModule(
     'get',
@@ -88,11 +89,6 @@ factoid.registerSubModule(
     async (args, msg) => {
       const factoidName: string =
         (args.filter(arg => arg.name === 'factoid')[0].value as string) ?? '';
-      if (factoidName === '') {
-        return util.embed.errorEmbed(
-          'No factoid name provided, please specify a factoid.'
-        );
-      }
       const db: Db = util.mongo.fetchValue();
       const factoids: Collection<Factoid> = db.collection<Factoid>(
         FACTOID_COLLECTION_NAME
@@ -143,12 +139,10 @@ factoid.registerSubModule(
       const factoids = db.collection<Factoid>(FACTOID_COLLECTION_NAME);
       // first see if they uploaded a factoid
       // the json upload
-      const uploadedFactoid: Attachment | undefined = args.filter(
+      const uploadedFactoid: Attachment = args.find(
         arg => arg.name === 'factoid'
-      )[0].attachment;
-      if (uploadedFactoid === undefined) {
-        return util.embed.errorEmbed('No attachments provided');
-      }
+      )!.attachment!;
+
       // fetch the first attachment, ignore the rest
       // non-null assertion: we've verified that there's at least one attachment
 
