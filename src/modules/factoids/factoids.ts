@@ -134,7 +134,7 @@ factoid.registerSubModule(
         required: true,
       },
     ],
-    async (args, interaction) => {
+    async (args) => {
       const db: Db = util.mongo.fetchValue();
       const factoids = db.collection<Factoid>(FACTOID_COLLECTION_NAME);
       // first see if they uploaded a factoid
@@ -239,6 +239,54 @@ factoid.registerSubModule(
           `Factoid successfully deleted: \`${factoidName}\``
         );
       }
+    }
+  )
+);
+
+factoid.registerSubModule(
+  new util.SubModule(
+    'json',
+    'Fetch a factoids json config from the database and return it',
+    [
+      {
+        type: util.ModuleOptionType.String,
+        name: 'factoid',
+        description: 'The factoid to fetch the json of',
+        required: true,
+      },
+    ],
+    async (args, msg) => {
+      const factoidName: string =
+        (args.filter(arg => arg.name === 'factoid')[0].value as string) ?? '';
+      const db: Db = util.mongo.fetchValue();
+      const factoids: Collection<Factoid> = db.collection<Factoid>(
+        FACTOID_COLLECTION_NAME
+      );
+
+      // findOne returns null if it doesn't find the thing
+      const locatedFactoid: Factoid | null = await factoids.findOne({
+        name: factoidName,
+      });
+      if (locatedFactoid === null) {
+        return util.embed.errorEmbed(
+          'Unable to located the factoid specified.'
+        );
+      }
+
+      // Converts the JSON contents to a buffer so it can be sent as an attachment
+      const serializedFactoid = JSON.stringify(locatedFactoid);
+      const files = Buffer.from(serializedFactoid);
+
+      await msg
+        .reply({files: [{attachment: files, name: 'factoid.json'}]})
+        .catch(err => {
+          util.logEvent(
+            util.EventCategory.Error,
+            'factoid',
+            `An error was encountered sending factoid: ${(err as Error).name}`,
+            3
+          );
+        });
     }
   )
 );

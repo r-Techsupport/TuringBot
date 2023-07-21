@@ -386,7 +386,8 @@ export class Dependency {
         'core',
         `Failed to resolve dependency ${this.name} due to error ${
           (err as Error).name
-        }, anything makes use of that dependency will not be available`,
+        }, anything makes use of that dependency will not be available
+        ${(err as Error).stack}`,
         2
       );
       // if an error is encountered during resolution, null is returned
