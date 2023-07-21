@@ -1,4 +1,22 @@
 {
+  /**
+   * https://discord.com/developers/docs/topics/oauth2
+   * https://discord.com/developers
+   * create new application -> bot -> new bot user -> oath2 -> bot -> administrator -> copy link
+   * rememember to set your bot intents
+   */
+  "authToken": "your-auth-token",
+  "applicationId": "",
+  // database configuration
+  "mongodb": {
+    // These are filled out using the settings from `k8s/dev.yaml`, but should probably
+    // be set to something different in prod
+    // login code *probably* needs to be changed if you're using atlas
+    "address": "mongodb.default.svc.cluster.local",
+    "username": "root",
+    "password": "root"
+  },
+  // Specifically event logging
   "logging": {
     /**
      * Different levels of verbose logging.
@@ -14,16 +32,45 @@
      * 4:
      */
     "stdout": {
-      "verboseLevel": 2
+      "verboseLevel": 3
     },
     // It is an option to have the bot DM certain users for events, it's suggested to leave this disabled or on a very low level.
     "directMessageLogging": {
-      "userIds": [],
-      "verboseLevel": 0
+      "userIds": [""],
+      "verboseLevel": 1
     },
+
     "loggingChannel": {
       "loggingChannelId": "",
-      "verboseLevel": 2
+      "verboseLevel": 3
+    }
+  },
+
+  "testing": {
+    // The user ID for the bot test user
+    "userID": ""
+  },
+
+  // The key for each module should match the one specified in the root module initialization
+  // if the `enabled` key is missing, the extension will be disabled by default, and a warning issued
+  "modules": {
+    "logging": {
+      "enabled": true,
+      // each channel ID paired with a respecting logging channel, if it's not specified here
+      // messages from that channel will silently not be logged,
+      "loggingCategory": "",
+      // this can be filled automatically with `logging populate` if `loggingCategory` is set
+      // communication channel on the left, logging channel on the right
+      "channelMap": {
+    },
+      // this map contains a list of channels that will not be logged. also populated by `logging populate`
+      "channelBlacklist": [
+    ]
+    },
+    "factoid": {
+      "enabled": true,
+      // a list of characters that can be used as a prefix to trigger a factoid
+      "prefixes": ["?"]
     }
   }
 }

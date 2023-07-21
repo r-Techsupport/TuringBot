@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+spec:
+  type: ClusterIP
+  selector:
+    name: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+spec:
+  serviceName: mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      name: mongodb
+  template:
+    metadata:
+      labels:
+        name: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:6.0
+        env:
+          - name: MONGO_INITDB_ROOT_USERNAME
+            value: root
+          - name: MONGO_INITDB_ROOT_PASSWORD
+            value: root

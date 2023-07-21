@@ -253,7 +253,7 @@ factoid.registerSubModule(
 // NOTE: THE BELOW IS TEMPORARY AS A TEST
 const ping = new util.SubModule('ping', 'ping the ping');
 const pong = new util.SubModule('pong', 'pong the pong', [], async () => {
-  console.log('hee heee');
+  console.log('hee hee');
 });
 factoid.registerSubModule(ping);
 ping.registerSubmodule(pong);

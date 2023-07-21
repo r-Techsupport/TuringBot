@@ -11,10 +11,12 @@ import {
   ButtonStyle,
   ChatInputCommandInteraction,
   Collection,
+  Client,
   Message,
   REST,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
   Routes,
+  GatewayIntentBits,
   SlashCommandAttachmentOption,
   SlashCommandBooleanOption,
   SlashCommandBuilder,
@@ -28,7 +30,7 @@ import {
   SlashCommandUserOption,
 } from 'discord.js';
 
-import {client, guild, modules} from './main.js';
+import {modules, guild} from './main.js';
 import {ModuleInputOption, ModuleOptionType, RootModule} from './modules.js';
 import {botConfig} from './config.js';
 import {EventCategory, logEvent} from './logger.js';
@@ -52,6 +54,14 @@ type SlashCommandOption =
   | SlashCommandRoleOption
   | SlashCommandStringOption
   | SlashCommandUserOption;
+
+export const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
 
 /**
  * Helper utilities used to speed up embed work

@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: turingbot
+  labels:
+    name: turingbot
+spec:
+  replicas: 1
+  # Selector and template are basically specifying "when i want to take an action, what do i want to target?"
+  # in this case, we only want to target *this* container
+  selector:
+    matchLabels:
+      name: turingbot
+  template:
+    metadata:
+      labels:
+        name: turingbot
+    spec:
+      containers:
+        - name: turingbot
+          image: turingbot
+          imagePullPolicy: Never
+          resources:
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
