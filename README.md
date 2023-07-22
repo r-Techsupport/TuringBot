@@ -25,7 +25,7 @@ A scaleable Discord bot, built as a replacement for https://github.com/r-Techsup
 **factoids.ts**
 - [ ] L76: Use deferreply for all functions in case a reply takes longer than 3 seconds
 - [ ] L193: Allow plaintext factoids by taking everything after the json argument
-- [ ] L195: Check if a factoid already exists before adding it
+- [x] L195: Check if a factoid already exists before adding it
 
 
 **Low priority**
@@ -39,4 +39,3 @@ A scaleable Discord bot, built as a replacement for https://github.com/r-Techsup
 - [ ] Factoid_validation: Fill stuff out
 - [ ] Factoid_validation: Look into supporting [link buttons](https://discord.com/developers/docs/interactions/message-components)
 - [ ] Factoids: Implement an LRU cache
-- [ ] 
