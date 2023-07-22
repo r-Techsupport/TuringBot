@@ -54,36 +54,7 @@ client.once(Events.ClientReady, async () => {
   guild = client.guilds.cache.first()!;
   logEvent(EventCategory.Info, 'core', 'Initialized Discord connection', 2);
 
-  // TODO: move module imports to a function
-  // annoyingly, readdir() calls are relative to the node process, not the file making the call,
-  // so it's resolved manually to make this more robust
-  const moduleLocation = fileURLToPath(
-    path.dirname(import.meta.url) + '/../modules'
-  );
-  const files: Dirent[] = readdirSync(moduleLocation, {withFileTypes: true});
-  for (const file of files) {
-    // If we've hit a directory, then attempt to fetch the modules from a file with the same name
-    // as the directory found
-    // TODO: use Promise.all to speed up module imports
-    if (file.isDirectory()) {
-      const subDirectory = readdirSync(moduleLocation + '/' + file.name);
-      // look for a file with the same name as the directory encountered
-      for (const subFile of subDirectory) {
-        if (subFile.startsWith(file.name)) {
-          await importModulesFromFile(
-            '../modules/' + file.name + '/' + subFile
-          );
-          break;
-        }
-      }
-    } else {
-      // Prevent map files from being loaded as modules, they're used to allow the debugger
-      // to point to the typescript files with errors
-      if (!file.name.endsWith('.map')) {
-        await importModulesFromFile('../modules/' + file.name);
-      }
-    }
-  }
+  await import_modules();
 
   const newSlashCommands = [];
   for (const module of modules) {
@@ -411,4 +382,41 @@ async function initializeModule(module: RootModule): Promise<void> {
       3
     );
   }
+}
+
+/** Function to import all modules. */
+async function import_modules() {
+  // Get a list of commands and subcommands to register
+  const moduleLocation = fileURLToPath(
+    path.dirname(import.meta.url) + '/../modules'
+  );
+  const files: Dirent[] = readdirSync(moduleLocation, {withFileTypes: true});
+
+  // Used to accelerate the speed of the imports
+  const importPromises = [];
+
+  for (const file of files) {
+    // If we've hit a directory, then attempt to fetch the modules from a file with the same name
+    // as the directory found
+    if (file.isDirectory()) {
+      const subDirectory = readdirSync(moduleLocation + '/' + file.name);
+      // look for a file with the same name as the directory encountered
+      for (const subFile of subDirectory) {
+        if (subFile.startsWith(file.name)) {
+          importPromises.push(
+            importModulesFromFile('../modules/' + file.name + '/' + subFile)
+          );
+          break;
+        }
+      }
+    } else {
+      // Prevent map files from being loaded as modules, they're used to allow the debugger
+      // to point to the typescript files with errors
+      if (!file.name.endsWith('.map')) {
+        importPromises.push(importModulesFromFile('../modules/' + file.name));
+      }
+    }
+  }
+  // Runs all import tasks
+  await Promise.all(importPromises);
 }
