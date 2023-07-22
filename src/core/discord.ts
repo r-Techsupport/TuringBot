@@ -13,6 +13,7 @@ import {
   Collection,
   Client,
   Message,
+  InteractionResponse,
   REST,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
   Routes,
@@ -124,7 +125,7 @@ export const embed = {
   async confirmEmbed(
     prompt: string,
     // this might break if reply() is called twice
-    message: Message | ChatInputCommandInteraction,
+    message: ChatInputCommandInteraction,
     timeout = 60
   ): Promise<ConfirmEmbedResponse> {
     // https://discordjs.guide/message-components/action-rows.html
@@ -141,11 +142,21 @@ export const embed = {
       confirm,
       deny
     );
+
+    let response: InteractionResponse<boolean> | Message;
     // send the confirmation
-    const response = await message.reply({
-      embeds: [this.infoEmbed(prompt)],
-      components: [actionRow],
-    });
+    if (!message.replied) {
+      response = await message.reply({
+        embeds: [this.infoEmbed(prompt)],
+        components: [actionRow],
+      });
+    } else {
+      response = await message.followUp({
+        embeds: [this.infoEmbed(prompt)],
+        components: [actionRow],
+      });
+    }
+
     // listen for a button interaction
     try {
       const interaction = await response.awaitMessageComponent({

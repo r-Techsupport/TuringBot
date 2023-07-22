@@ -280,8 +280,10 @@ async function executeModule(
     .executeCommand(Array.from(options), interaction)
     .then((value: void | APIEmbed) => {
       // enable modules to return an embed
-      if (value !== undefined) {
+      if (value !== undefined && !interaction.replied) {
         void interaction.reply({embeds: [value!]});
+      } else if (value !== undefined) {
+        void interaction.followUp({embeds: [value!]});
       }
     })
     .catch((err: Error) => {
@@ -296,18 +298,33 @@ async function executeModule(
           '```',
         3
       );
-      void interaction.reply({
-        embeds: [
-          embed.errorEmbed(
-            'Command returned an error:\n' +
-              '```' +
-              err.name +
-              '\n' +
-              err.stack +
-              '```'
-          ),
-        ],
-      });
+      if (!interaction.replied) {
+        void interaction.reply({
+          embeds: [
+            embed.errorEmbed(
+              'Command returned an error:\n' +
+                '```' +
+                err.name +
+                '\n' +
+                err.stack +
+                '```'
+            ),
+          ],
+        });
+      } else {
+        void interaction.followUp({
+          embeds: [
+            embed.errorEmbed(
+              'Command returned an error:\n' +
+                '```' +
+                err.name +
+                '\n' +
+                err.stack +
+                '```'
+            ),
+          ],
+        });
+      }
     });
 }
 

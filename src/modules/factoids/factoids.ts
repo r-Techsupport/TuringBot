@@ -134,7 +134,7 @@ factoid.registerSubModule(
         required: true,
       },
     ],
-    async (args) => {
+    async (args, interaction) => {
       const db: Db = util.mongo.fetchValue();
       const factoids = db.collection<Factoid>(FACTOID_COLLECTION_NAME);
       // first see if they uploaded a factoid
@@ -174,13 +174,50 @@ factoid.registerSubModule(
           'Factoid name missing from command invocation, please specify a name.'
         );
       }
+
+      const factoid_name: string =
+        args.filter(arg => arg.name === 'name')[0].value?.toString() ??
+        'somethingBrokeThisShouldBeImpossible';
+
+      // Makes sure the factoid doesn't exist already
+      const locatedFactoid: Factoid | null = await factoids.findOne({
+        name: factoid_name,
+      });
+
+      // The factoid already exists
+      if (locatedFactoid !== null) {
+        // Deletion confirmation
+        const response = await util.embed.confirmEmbed(
+          `The factoid \`${factoid_name}\` already exists! Overwrite it?`,
+          interaction
+        );
+
+        if (response === util.ConfirmEmbedResponse.Denied) {
+          return util.embed.errorEmbed(
+            `The factoid \`${factoid_name}\` was not overwritten`
+          );
+        }
+
+        if (response === util.ConfirmEmbedResponse.Confirmed) {
+          // Delete the factoid
+          const result: DeleteResult = await factoids.deleteOne({
+            name: factoid_name,
+          });
+
+          // If nothing got deleted, something done broke
+          if (result.deletedCount === 0) {
+            return util.embed.errorEmbed(
+              `Deletion failed, unable to find the factoid \`${name}\``
+            );
+          }
+        }
+      }
+
       // the structure sent to the database
       const factoid: Factoid = {
         // the option is *required* so this option should always exist,
         // but you're not supposed use non-null assertion after filter calls
-        name:
-          args.filter(arg => arg.name === 'name')[0].value?.toString() ??
-          'somethingBrokeThisShouldBeImpossible',
+        name: factoid_name,
         aliases: [],
         hidden: false,
         message: JSON.parse(serializedFactoid),
@@ -192,7 +229,6 @@ factoid.registerSubModule(
       };
       // TODO: allow plain text factoids by taking everything after the argument
 
-      // TODO: see if a factoid is stored with the same name
       await factoids.insertOne(factoid).catch(err => {
         return util.embed.errorEmbed(
           `Database call failed with error ${(err as Error).name}`
