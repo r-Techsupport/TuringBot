@@ -86,14 +86,13 @@ factoid.registerSubModule(
         required: true,
       },
     ],
-    async (args, msg) => {
+    async (args, interaction) => {
       const factoidName: string =
-        (args.filter(arg => arg.name === 'factoid')[0].value as string) ?? '';
+        args.find(arg => arg.name === 'factoid')!.value!.toString() ?? '';
       const db: Db = util.mongo.fetchValue();
       const factoids: Collection<Factoid> = db.collection<Factoid>(
         FACTOID_COLLECTION_NAME
       );
-
       // findOne returns null if it doesn't find the thing
       const locatedFactoid: Factoid | null = await factoids.findOne({
         name: factoidName,
@@ -104,14 +103,16 @@ factoid.registerSubModule(
         );
       }
 
-      await msg.reply(locatedFactoid.message).catch(err => {
-        util.logEvent(
-          util.EventCategory.Error,
-          'factoid',
-          `An error was encountered sending factoid: ${(err as Error).name}`,
-          3
-        );
-      });
+      await util
+        .replyToInteraction(interaction, locatedFactoid.message)
+        .catch(err => {
+          util.logEvent(
+            util.EventCategory.Error,
+            'factoid',
+            `An error was encountered sending factoid: ${(err as Error).name}`,
+            3
+          );
+        });
     }
   )
 );
@@ -291,7 +292,7 @@ factoid.registerSubModule(
         required: true,
       },
     ],
-    async (args, msg) => {
+    async (args, interaction) => {
       const factoidName: string =
         (args.filter(arg => arg.name === 'factoid')[0].value as string) ?? '';
       const db: Db = util.mongo.fetchValue();
@@ -313,8 +314,10 @@ factoid.registerSubModule(
       const serializedFactoid = JSON.stringify(locatedFactoid);
       const files = Buffer.from(serializedFactoid);
 
-      await msg
-        .reply({files: [{attachment: files, name: 'factoid.json'}]})
+      await util
+        .replyToInteraction(interaction, {
+          files: [{attachment: files, name: 'factoid.json'}],
+        })
         .catch(err => {
           util.logEvent(
             util.EventCategory.Error,

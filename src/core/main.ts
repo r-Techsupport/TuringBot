@@ -16,6 +16,7 @@ import {
   embed,
   generateSlashCommandForModule,
   registerSlashCommandSet,
+  replyToInteraction,
 } from './discord.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
@@ -217,6 +218,8 @@ async function executeModule(
   module: RootModule | SubModule,
   interaction: ChatInputCommandInteraction
 ) {
+  await interaction.deferReply();
+
   // TODO: move this to a separate function
   // no submodules, it's safe to execute the command and return
   // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
@@ -224,7 +227,7 @@ async function executeModule(
     const depResult: unknown = await dep.resolve();
     // .resolve() returns null if resolution failed
     if (depResult === null) {
-      void interaction.reply({
+      void replyToInteraction(interaction, {
         embeds: [
           embed.errorEmbed(
             `Unable to execute command because dependency "${dep.name}" could not be resolved`
@@ -245,16 +248,12 @@ async function executeModule(
     options = Array.from(interaction.options.data);
   }
   // There may be possible minor perf/mem overhead from calling Array.from to un-readonly the array,
-  // TODO: figure out if a reply has already been sent, then use editReply() or followUp() instead,
-  // because you can only use reply() once per interaction
   module
     .executeCommand(Array.from(options), interaction)
     .then((value: void | APIEmbed) => {
       // enable modules to return an embed
-      if (value !== undefined && !interaction.replied) {
-        void interaction.reply({embeds: [value!]});
-      } else if (value !== undefined) {
-        void interaction.followUp({embeds: [value!]});
+      if (value !== undefined) {
+        void replyToInteraction(interaction, {embeds: [value!]});
       }
     })
     .catch((err: Error) => {
@@ -269,33 +268,18 @@ async function executeModule(
           '```',
         3
       );
-      if (!interaction.replied) {
-        void interaction.reply({
-          embeds: [
-            embed.errorEmbed(
-              'Command returned an error:\n' +
-                '```' +
-                err.name +
-                '\n' +
-                err.stack +
-                '```'
-            ),
-          ],
-        });
-      } else {
-        void interaction.followUp({
-          embeds: [
-            embed.errorEmbed(
-              'Command returned an error:\n' +
-                '```' +
-                err.name +
-                '\n' +
-                err.stack +
-                '```'
-            ),
-          ],
-        });
-      }
+      void replyToInteraction(interaction, {
+        embeds: [
+          embed.errorEmbed(
+            'Command returned an error:\n' +
+              '```' +
+              err.name +
+              '\n' +
+              err.stack +
+              '```'
+          ),
+        ],
+      });
     });
 }
 
