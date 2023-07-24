@@ -1,6 +1,5 @@
 {
   "version": "0.1.0",
-  "main": "./core/main.ts",
   "type": "module",
   "directories": {
     "test": "tests"

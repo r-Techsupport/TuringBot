@@ -10,6 +10,26 @@ spec:
     - port: 27017
       targetPort: 27017
 ---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: slow
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongo-volume-claim
+spec:
+  storageClassName: "slow"
+  accessModes:
+    - ReadWriteOnce 
+  resources:
+    requests:
+      storage: 512Mi
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -28,8 +48,16 @@ spec:
       containers:
       - name: mongodb
         image: mongo:6.0
+        args: ['--dbpath','/data/db']
         env:
           - name: MONGO_INITDB_ROOT_USERNAME
             value: root
           - name: MONGO_INITDB_ROOT_PASSWORD
             value: root
+        volumeMounts:
+          - name: 'mongo-volume-claim'
+            mountPath: '/data/db'
+      volumes:
+        - name: mongo-volume-claim
+          persistentVolumeClaim:
+            claimName: 'mongo-volume-claim'
