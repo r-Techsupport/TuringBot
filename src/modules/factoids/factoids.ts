@@ -2,12 +2,18 @@
  * @file
  * This file contains the `factoid` module definition.
  */
-import {Db} from 'mongodb';
-import type {Collection, DeleteResult} from 'mongodb';
+import {Db, Filter, InsertOneResult} from 'mongodb';
+import type {Collection} from 'mongodb';
 import {request} from 'undici';
 
 import * as util from '../../core/util.js';
-import {Attachment, BaseMessageOptions, Events, Message} from 'discord.js';
+import {
+  Attachment,
+  BaseMessageOptions,
+  ChatInputCommandInteraction,
+  Events,
+  Message,
+} from 'discord.js';
 import {validateMessage} from './factoid_validation.js';
 
 interface Factoid {
@@ -30,12 +36,7 @@ const factoid = new util.RootModule(
 // TODO: implement an LRU factoid cache
 
 factoid.onInitialize(async () => {
-  // these are defined outside so that they don't get redefined every time a
-  // message is sent
-  const db: Db = util.mongo.fetchValue();
-  const factoids: Collection<Factoid> = db.collection<Factoid>(
-    FACTOID_COLLECTION_NAME
-  );
+  // Defined outside so that they don't get redefined every time a message is sent
   const prefixes: string[] = factoid.config.prefixes;
   // listen for a message sent by any of a few prefixes
   // only register a listener if at least one prefix was specified
@@ -44,17 +45,13 @@ factoid.onInitialize(async () => {
   }
 
   util.client.on(Events.MessageCreate, async (message: Message<boolean>) => {
-    // anything that does not include
-    if (!prefixes.includes(message.content.charAt(0))) {
-      return;
-    }
-    // make sure factoids can only be triggered by non bot users
-    if (message.author.bot) {
+    // Anything that doesn't include the prefix or was sent by a bot gets excluded
+    if (!prefixes.includes(message.content.charAt(0)) || message.author.bot) {
       return;
     }
     //remove the prefix, split by spaces, and query the DB
     const queryArguments: string[] = message.content.slice(1).split(' ');
-    const queryResult = await factoids.findOne({
+    const queryResult = await getFactoid({
       name: queryArguments[0],
     });
     // no match found
@@ -73,7 +70,60 @@ factoid.onInitialize(async () => {
   });
 });
 
-// TODO: use deferreply for all of these, on the off chance a reply takes over 3 secs
+/** Function to get a factoid by any set of filters
+ * @param filter: The filter to use when calling the DB
+ * @returns: The located factoid (null if not found)
+ */
+async function getFactoid(filter: Filter<Factoid>): Promise<Factoid | null> {
+  const db: Db = util.mongo.fetchValue();
+  const factoids: Collection<Factoid> = db.collection(FACTOID_COLLECTION_NAME);
+  return await factoids.findOne(filter);
+}
+
+/** Function to delete a factoid by a filter
+ * @param filter: The filter to use to get the factoid to delete
+ * @returns: The number of factoids that got deleted
+ */
+async function deleteFactoid(filter: Filter<Factoid>): Promise<number> {
+  const db: Db = util.mongo.fetchValue();
+  const factoids: Collection<Factoid> = db.collection(FACTOID_COLLECTION_NAME);
+  return (await factoids.deleteOne(filter)).deletedCount;
+}
+
+/** Function to add a factoid
+ * @param factoid: The factoid to add
+ * @returns: The result of the DB call
+ */
+async function addFactoid(factoid: Factoid): Promise<InsertOneResult<Factoid>> {
+  const db: Db = util.mongo.fetchValue();
+  const factoids: Collection<Factoid> = db.collection(FACTOID_COLLECTION_NAME);
+  return await factoids.insertOne(factoid);
+}
+
+async function confirmDeletion(
+  interaction: ChatInputCommandInteraction,
+  factoidName: string
+): Promise<boolean> {
+  switch (
+    await util.embed.confirmEmbed(
+      `The factoid \`${factoidName}\` already exists! Overwrite it?`,
+      interaction
+    )
+  ) {
+    case util.ConfirmEmbedResponse.Denied: {
+      await util.replyToInteraction(
+        interaction,
+        `The factoid \`${factoidName}\` was not overwritten`
+      );
+      return false;
+    }
+
+    case util.ConfirmEmbedResponse.Confirmed: {
+      return true;
+    }
+  }
+}
+
 factoid.registerSubModule(
   new util.SubModule(
     'get',
@@ -87,16 +137,12 @@ factoid.registerSubModule(
       },
     ],
     async (args, interaction) => {
-      const factoidName: string =
-        args.find(arg => arg.name === 'factoid')!.value!.toString() ?? '';
-      const db: Db = util.mongo.fetchValue();
-      const factoids: Collection<Factoid> = db.collection<Factoid>(
-        FACTOID_COLLECTION_NAME
-      );
-      // findOne returns null if it doesn't find the thing
-      const locatedFactoid: Factoid | null = await factoids.findOne({
-        name: factoidName,
-      });
+      const factoidName = args
+        .find(arg => arg.name === 'factoid')!
+        .value?.toString();
+
+      const locatedFactoid = await getFactoid({name: factoidName});
+
       if (locatedFactoid === null) {
         return util.embed.errorEmbed(
           'Unable to located the factoid specified.'
@@ -136,10 +182,7 @@ factoid.registerSubModule(
       },
     ],
     async (args, interaction) => {
-      const db: Db = util.mongo.fetchValue();
-      const factoids = db.collection<Factoid>(FACTOID_COLLECTION_NAME);
-      // first see if they uploaded a factoid
-      // the json upload
+      // Get the JSON
       const uploadedFactoid: Attachment = args.find(
         arg => arg.name === 'factoid'
       )!.attachment!;
@@ -164,61 +207,46 @@ factoid.registerSubModule(
       // if any errors were found with the factoid to remember, return early
       if (messageIssues.length > 0) {
         return util.embed.errorEmbed(
-          `The following issues were found with the attached json (remember cancelled):\n - ${messageIssues.join(
+          `Unable to proceed, the following issues were found with the attached json :\n - ${messageIssues.join(
             '\n- '
           )}`
         );
       }
       // if no name was specified, return early
       if (args === undefined) {
-        return util.embed.errorEmbed(
-          'Factoid name missing from command invocation, please specify a name.'
-        );
+        return util.embed.errorEmbed('Please specify a factoid name.');
       }
 
-      const factoid_name: string =
-        args.filter(arg => arg.name === 'name')[0].value?.toString() ??
-        'somethingBrokeThisShouldBeImpossible';
+      const factoidName = args.find(arg => arg.name === 'name')!
+        .value as string;
 
       // Makes sure the factoid doesn't exist already
-      const locatedFactoid: Factoid | null = await factoids.findOne({
-        name: factoid_name,
+      const locatedFactoid: Factoid | null = await getFactoid({
+        name: factoidName,
       });
 
       // The factoid already exists
       if (locatedFactoid !== null) {
         // Deletion confirmation
-        const response = await util.embed.confirmEmbed(
-          `The factoid \`${factoid_name}\` already exists! Overwrite it?`,
-          interaction
-        );
+        if (!(await confirmDeletion(interaction, factoidName))) {
+          return;
+        }
 
-        if (response === util.ConfirmEmbedResponse.Denied) {
+        // Delete the factoid
+        const deletedFactoids: number = await deleteFactoid({
+          name: factoidName,
+        });
+
+        // If nothing got deleted, something done broke
+        if (deletedFactoids === 0) {
           return util.embed.errorEmbed(
-            `The factoid \`${factoid_name}\` was not overwritten`
+            `Deletion failed, unable to find the factoid \`${factoidName}\``
           );
         }
-
-        if (response === util.ConfirmEmbedResponse.Confirmed) {
-          // Delete the factoid
-          const result: DeleteResult = await factoids.deleteOne({
-            name: factoid_name,
-          });
-
-          // If nothing got deleted, something done broke
-          if (result.deletedCount === 0) {
-            return util.embed.errorEmbed(
-              `Deletion failed, unable to find the factoid \`${name}\``
-            );
-          }
-        }
       }
-
-      // the structure sent to the database
+      // Defines the structure sent to the DB
       const factoid: Factoid = {
-        // the option is *required* so this option should always exist,
-        // but you're not supposed use non-null assertion after filter calls
-        name: factoid_name,
+        name: factoidName,
         aliases: [],
         hidden: false,
         message: JSON.parse(serializedFactoid),
@@ -230,14 +258,14 @@ factoid.registerSubModule(
       };
       // TODO: allow plain text factoids by taking everything after the argument
 
-      await factoids.insertOne(factoid).catch(err => {
+      await addFactoid(factoid).catch(err => {
         return util.embed.errorEmbed(
           `Database call failed with error ${(err as Error).name}`
         );
       });
 
       return util.embed.successEmbed(
-        'Factoid successfully registered: ' + factoid.name
+        `Factoid \`${factoidName}\` was succesfully registered`
       );
     }
   )
@@ -258,22 +286,18 @@ factoid.registerSubModule(
     async args => {
       const factoidName = args.find(arg => arg.name === 'factoid')!
         .value as string;
-      const db: Db = util.mongo.fetchValue();
-      const factoids: Collection<Factoid> = db.collection(
-        FACTOID_COLLECTION_NAME
-      );
-      const result: DeleteResult = await factoids.deleteOne({
+      const deletedFactoids: number = await deleteFactoid({
         name: factoidName,
       });
 
-      if (result.deletedCount === 0) {
+      if (deletedFactoids === 0) {
         return util.embed.errorEmbed(
-          `Deletion failed, unable to find factoid \`${factoidName}\``
+          `Deletion failed, unable to find the factoid \`${factoidName}\``
         );
       } else {
         // if stuff was deleted, than we probably found the factoid, return success
         return util.embed.successEmbed(
-          `Factoid successfully deleted: \`${factoidName}\``
+          `Factoid \`${factoidName}\` successfully deleted`
         );
       }
     }
@@ -295,18 +319,14 @@ factoid.registerSubModule(
     async (args, interaction) => {
       const factoidName: string =
         (args.filter(arg => arg.name === 'factoid')[0].value as string) ?? '';
-      const db: Db = util.mongo.fetchValue();
-      const factoids: Collection<Factoid> = db.collection<Factoid>(
-        FACTOID_COLLECTION_NAME
-      );
 
       // findOne returns null if it doesn't find the thing
-      const locatedFactoid: Factoid | null = await factoids.findOne({
+      const locatedFactoid: Factoid | null = await getFactoid({
         name: factoidName,
       });
       if (locatedFactoid === null) {
         return util.embed.errorEmbed(
-          'Unable to located the factoid specified.'
+          `Couldn't find the factoid \`${factoidName}\``
         );
       }
 
