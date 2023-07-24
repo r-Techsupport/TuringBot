@@ -7,16 +7,20 @@ import {
   APIEmbed,
   ActionRowBuilder,
   ApplicationCommand,
+  BaseMessageOptions,
   ButtonBuilder,
   ButtonStyle,
   ChatInputCommandInteraction,
   Collection,
   Client,
   Message,
+  InteractionResponse,
   REST,
   RESTPostAPIChatInputApplicationCommandsJSONBody,
   Routes,
   GatewayIntentBits,
+  InteractionReplyOptions,
+  MessagePayload,
   SlashCommandAttachmentOption,
   SlashCommandBooleanOption,
   SlashCommandBuilder,
@@ -124,7 +128,7 @@ export const embed = {
   async confirmEmbed(
     prompt: string,
     // this might break if reply() is called twice
-    message: Message | ChatInputCommandInteraction,
+    interaction: ChatInputCommandInteraction,
     timeout = 60
   ): Promise<ConfirmEmbedResponse> {
     // https://discordjs.guide/message-components/action-rows.html
@@ -141,19 +145,22 @@ export const embed = {
       confirm,
       deny
     );
+
     // send the confirmation
-    const response = await message.reply({
-      embeds: [this.infoEmbed(prompt)],
-      components: [actionRow],
-    });
+    const response: InteractionResponse<boolean> | Message =
+      await replyToInteraction(interaction, {
+        embeds: [this.infoEmbed(prompt)],
+        components: [actionRow],
+      });
+
     // listen for a button interaction
     try {
-      const interaction = await response.awaitMessageComponent({
-        filter: i => i.user.id === message.member?.user.id,
+      const buttonInteraction = await response.awaitMessageComponent({
+        filter: i => i.user.id === interaction.member?.user.id,
         time: timeout * 1000,
       });
       response.delete();
-      return interaction.customId as ConfirmEmbedResponse;
+      return buttonInteraction.customId as ConfirmEmbedResponse;
     } catch {
       // awaitMessageComponent throws an error when the timeout was reached, so this behavior assumes
       // that no other errors were thrown
@@ -392,4 +399,23 @@ export async function registerSlashCommandSet(
     }
   );
   logEvent(EventCategory.Info, 'core', 'Slash commands refreshed.', 2);
+}
+
+/** Function to reply to an interaction with provided arguments, uses followup() or editReply() accordingly
+ * @param interaction: The interaction to respond to
+ * @param payload: The payload to send
+ */
+export async function replyToInteraction(
+  interaction: ChatInputCommandInteraction,
+  payload:
+    | string
+    | MessagePayload
+    | InteractionReplyOptions
+    | BaseMessageOptions
+): Promise<Message<boolean>> {
+  if (interaction.replied) {
+    return await interaction.followUp(payload);
+  }
+  // Not .reply() since deferReply doesn't count as a reply and hence .replied is still false
+  return await interaction.editReply(payload);
 }

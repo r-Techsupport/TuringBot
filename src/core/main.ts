@@ -16,6 +16,7 @@ import {
   embed,
   generateSlashCommandForModule,
   registerSlashCommandSet,
+  replyToInteraction,
 } from './discord.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
@@ -54,36 +55,7 @@ client.once(Events.ClientReady, async () => {
   guild = client.guilds.cache.first()!;
   logEvent(EventCategory.Info, 'core', 'Initialized Discord connection', 2);
 
-  // TODO: move module imports to a function
-  // annoyingly, readdir() calls are relative to the node process, not the file making the call,
-  // so it's resolved manually to make this more robust
-  const moduleLocation = fileURLToPath(
-    path.dirname(import.meta.url) + '/../modules'
-  );
-  const files: Dirent[] = readdirSync(moduleLocation, {withFileTypes: true});
-  for (const file of files) {
-    // If we've hit a directory, then attempt to fetch the modules from a file with the same name
-    // as the directory found
-    // TODO: use Promise.all to speed up module imports
-    if (file.isDirectory()) {
-      const subDirectory = readdirSync(moduleLocation + '/' + file.name);
-      // look for a file with the same name as the directory encountered
-      for (const subFile of subDirectory) {
-        if (subFile.startsWith(file.name)) {
-          await importModulesFromFile(
-            '../modules/' + file.name + '/' + subFile
-          );
-          break;
-        }
-      }
-    } else {
-      // Prevent map files from being loaded as modules, they're used to allow the debugger
-      // to point to the typescript files with errors
-      if (!file.name.endsWith('.map')) {
-        await importModulesFromFile('../modules/' + file.name);
-      }
-    }
-  }
+  await import_modules();
 
   const newSlashCommands = [];
   for (const module of modules) {
@@ -246,6 +218,8 @@ async function executeModule(
   module: RootModule | SubModule,
   interaction: ChatInputCommandInteraction
 ) {
+  await interaction.deferReply();
+
   // TODO: move this to a separate function
   // no submodules, it's safe to execute the command and return
   // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
@@ -253,7 +227,7 @@ async function executeModule(
     const depResult: unknown = await dep.resolve();
     // .resolve() returns null if resolution failed
     if (depResult === null) {
-      void interaction.reply({
+      void replyToInteraction(interaction, {
         embeds: [
           embed.errorEmbed(
             `Unable to execute command because dependency "${dep.name}" could not be resolved`
@@ -274,14 +248,12 @@ async function executeModule(
     options = Array.from(interaction.options.data);
   }
   // There may be possible minor perf/mem overhead from calling Array.from to un-readonly the array,
-  // TODO: figure out if a reply has already been sent, then use editReply() or followUp() instead,
-  // because you can only use reply() once per interaction
   module
     .executeCommand(Array.from(options), interaction)
     .then((value: void | APIEmbed) => {
       // enable modules to return an embed
       if (value !== undefined) {
-        void interaction.reply({embeds: [value!]});
+        void replyToInteraction(interaction, {embeds: [value!]});
       }
     })
     .catch((err: Error) => {
@@ -296,7 +268,7 @@ async function executeModule(
           '```',
         3
       );
-      void interaction.reply({
+      void replyToInteraction(interaction, {
         embeds: [
           embed.errorEmbed(
             'Command returned an error:\n' +
@@ -394,4 +366,41 @@ async function initializeModule(module: RootModule): Promise<void> {
       3
     );
   }
+}
+
+/** Function to import all modules. */
+async function import_modules() {
+  // Get a list of commands and subcommands to register
+  const moduleLocation = fileURLToPath(
+    path.dirname(import.meta.url) + '/../modules'
+  );
+  const files: Dirent[] = readdirSync(moduleLocation, {withFileTypes: true});
+
+  // Used to accelerate the speed of the imports
+  const importPromises = [];
+
+  for (const file of files) {
+    // If we've hit a directory, then attempt to fetch the modules from a file with the same name
+    // as the directory found
+    if (file.isDirectory()) {
+      const subDirectory = readdirSync(moduleLocation + '/' + file.name);
+      // look for a file with the same name as the directory encountered
+      for (const subFile of subDirectory) {
+        if (subFile.startsWith(file.name)) {
+          importPromises.push(
+            importModulesFromFile('../modules/' + file.name + '/' + subFile)
+          );
+          break;
+        }
+      }
+    } else {
+      // Prevent map files from being loaded as modules, they're used to allow the debugger
+      // to point to the typescript files with errors
+      if (!file.name.endsWith('.map')) {
+        importPromises.push(importModulesFromFile('../modules/' + file.name));
+      }
+    }
+  }
+  // Runs all import tasks
+  await Promise.all(importPromises);
 }
