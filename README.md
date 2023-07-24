@@ -11,7 +11,7 @@ A scaleable Discord bot, built as a replacement for https://github.com/r-Techsup
 - [ ] L92: Unregister a slash command if it is disabled, detect such changes
 - [ ] L95: Only listen if there is a prefix or slash commands are enabled
 - [ ] L249: Move dependency resolving to its own function
-- [ ] L277: Figure out if a reply has been sent, if so use editReply() or followup() for further messages (Since reply() can only be used once)
+- [x] L277: Figure out if a reply has been sent, if so use editReply() or followup() for further messages (Since reply() can only be used once)
 
 **modules.ts**
 - [ ] L83: Autocomplete docstrings
@@ -23,7 +23,7 @@ A scaleable Discord bot, built as a replacement for https://github.com/r-Techsup
 - [ ] L315: Indicate if a logging channel exists
 
 **factoids.ts**
-- [ ] L76: Use deferreply for all functions in case a reply takes longer than 3 seconds
+- [x] L76: Use deferreply for all functions in case a reply takes longer than 3 seconds
 - [ ] L193: Allow plaintext factoids by taking everything after the json argument
 - [x] L195: Check if a factoid already exists before adding it
 
