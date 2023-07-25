@@ -13,7 +13,8 @@
     // be set to something different in prod
     // If using Atlas, set the protocol to mongodb+srv://
     // Otherwise set it to mongodb://
-    "address": "mongodb://mongodb.default.svc.cluster.local",
+    "protocol": "mongodb://",
+    "address": "mongodb.default.svc.cluster.local",
     "username": "root",
     "password": "root"
   },

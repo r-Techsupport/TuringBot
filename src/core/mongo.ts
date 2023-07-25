@@ -10,7 +10,7 @@ export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.mongodb;
   // https://www.mongodb.com/docs/manual/reference/connection-string/
   const connectionString =
-    `${mongoConfig.username}:${mongoConfig.password}` +
+    `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
     `@${mongoConfig.address}:27017`;
 
   // https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/connect/#std-label-node-connect-to-mongodb
