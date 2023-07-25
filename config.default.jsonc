@@ -11,8 +11,9 @@
   "mongodb": {
     // These are filled out using the settings from `k8s/dev.yaml`, but should probably
     // be set to something different in prod
-    // login code *probably* needs to be changed if you're using atlas
-    "address": "mongodb.default.svc.cluster.local",
+    // If using Atlas, set the protocol to mongodb+srv://
+    // Otherwise set it to mongodb://
+    "address": "mongodb://mongodb.default.svc.cluster.local",
     "username": "root",
     "password": "root"
   },
