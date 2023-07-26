@@ -76,7 +76,9 @@ export interface ModuleInputOption {
    * you can define a list of {@link ApplicationCommandOptionChoiceData}s
    *
    * Autocomplete *cannot* be set to true if you have defined choices, and this
-   * only applies for string, integer, and number options
+   * only applies for string, integer, and number options.
+   *
+   * **THIS FUNCTIONALITY IS NOT YET IMPLEMENTED**
    */
   choices?: APIApplicationCommandOptionChoice[];
   /**
@@ -97,13 +99,13 @@ type ModuleCommandFunction = (
   interaction: ChatInputCommandInteraction
 ) => Promise<void | APIEmbed>;
 
-// TODO: maybe separate help message and usage strings?
 /**
  * This allows extension of the bot's initial functionality. Almost all discord facing functionality should be implemented as a module
  * @param command The key phrase that references this module. There must be an extension config key matching this, or the module will be disabled.
  * @param helpMessage This message will be referenced when building help embeds, and is displayed to the user.
- * @param onCommandExecute
- * @param rootModuleName
+ * @param options This is an array of ModuleInputOptions, and will be registered with discord, giving you a way to have input
+ * to your slash command.
+ * @param onCommandExecute This function is run when a slash command is called in discord
  */
 export class BaseModule {
   /**
@@ -206,16 +208,24 @@ export class RootModule extends BaseModule {
    */
   enabled = false;
 
-  // TODO: docstrings
-  // TODO: have one overload for a group, and one overload for the executable version of the command
+  /***
+   * Create a new RootModule
+   * @param command The name by which this command will be registered and callable under.
+   * @param description A short (under 100 chars) explanation of your command
+   * @param dependencies A list of resources that your module needs before it can be safely executed.
+   * This might be a database (util.mongo), an API key, or anything else, you can define {@link Dependency}s as needed.
+   * @param options A list of {@link ModuleInputOption}s to be registered with discord and passed to your command as input.
+   * This should only be defined if you have no subcommands.
+   * @param onCommandExecute This function is called when a slash command is sent in discord.
+   */
   constructor(
-    name: string,
+    command: string,
     description: string,
     dependencies: Dependency[],
     options?: ModuleInputOption[],
     onCommandExecute?: ModuleCommandFunction
   ) {
-    super(name, description, options ?? [], onCommandExecute);
+    super(command, description, options ?? [], onCommandExecute);
     this.dependencies = dependencies;
     // the preset for this is a "safe" default,
     // so we just don't set it at all
@@ -271,7 +281,7 @@ export class SubModule extends BaseModule {
   // Definite assignment: Submodules are attached via `registerSubModule()`, which sets this property.
   // without that call, submodules are inaccessible
   rootModuleName!: string;
-
+  // TODO: docstrings
   constructor(
     command: string,
     helpMessage: string,

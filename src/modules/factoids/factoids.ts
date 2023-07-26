@@ -265,7 +265,7 @@ factoid.registerSubModule(
       });
 
       return util.embed.successEmbed(
-        `Factoid \`${factoidName}\` was succesfully registered`
+        `Factoid \`${factoidName}\` was successfully registered`
       );
     }
   )
