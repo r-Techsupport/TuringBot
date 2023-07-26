@@ -262,7 +262,12 @@ export async function generateSlashCommandForModule(
   }
   return slashCommand;
 }
-/** TODO: fill out docs */
+/**
+ * Given a SlashCommand(Subcommand)Builder, mutate the provided command to have the given {@link ModuleInputOption}.
+ * This function returns nothing.
+ * @param command The command you'd like to add
+ * @param option The option to bake into the provided command
+ */
 function addOptionToCommand(
   command: SlashCommandBuilder | SlashCommandSubcommandBuilder,
   option: ModuleInputOption
