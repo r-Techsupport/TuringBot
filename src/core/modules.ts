@@ -277,18 +277,27 @@ export class SubModule extends BaseModule {
    * Whatever the top level module for this module is named. If this is not a submodule, this value should be the same as `this.command`.
    *
    * If this is a submodule, it's `this.command`'s value for the default export module
+   *
+   * This should be set automatically with .registerSubmodule()
    */
   // Definite assignment: Submodules are attached via `registerSubModule()`, which sets this property.
   // without that call, submodules are inaccessible
   rootModuleName!: string;
-  // TODO: docstrings
+  /**
+   * Create a new SubModule
+   * @param command The name by which your module will be referenced, and the name that the slash command will be registered under
+   * @param description A short (under 100 chars) description of the command, like a help message.
+   * @param options If this module has no submodules, this is a list of options that will be registered with discord,
+   * and passed to your command when it's executed
+   * @param onCommandExecute This function is called when a user executes a slash command in discord.
+   */
   constructor(
     command: string,
-    helpMessage: string,
+    description: string,
     options?: ModuleInputOption[],
     onCommandExecute?: ModuleCommandFunction
   ) {
-    super(command, helpMessage, options ?? [], onCommandExecute);
+    super(command, description, options ?? [], onCommandExecute);
   }
 
   /**
