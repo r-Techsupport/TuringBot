@@ -33,6 +33,11 @@ class MessageRingBuffer {
   // TODO: add a max buffer size, this behavior can be implemented by over-writing data and shoving the read cursor forwards.
   // it's a lossy method of keeping memory under control, but we could maybe add an event
   /**
+   * The maximum size that this buffer is allowed to grow to. Once the maximum amount is hit, {@link reallocationStepSize}
+   * # of messages will be dropped from the buffer, and not logged
+   */
+  maxBufferSize: number;
+  /**
    * When the write cursor is behind the read cursor but has data to write into the buffer, the read cursor and all data
    * in front of it is shifted forwards by `reallocationStepSize` to avoid overwriting messages that haven't been handled
    */
@@ -62,8 +67,9 @@ class MessageRingBuffer {
    * @param initialSize However many elements are to be initially allocated in the buffer. More elements may be allocated if necessary, but
    * this is the minimum amount to be allocated at all times
    */
-  constructor(initialSize = 8) {
+  constructor(initialSize = 8, maxSize = 200) {
     this.initialBufferSize = initialSize;
+    this.maxBufferSize = maxSize;
     this.buf = Array(initialSize);
   }
 
@@ -114,20 +120,30 @@ class MessageRingBuffer {
    * Write a message into the buffer and advance the write cursor forwards, allocating more space if necessary
    */
   write(message: Message) {
+    // if the buffer has hit the maximum stated size, than create
+    // space in the buffer by moving the read cursor forwards, moving over
+    // messages without reading them, effectively dropping them from the buffer
+    if (this.numValues === this.maxBufferSize) {
+      for (let i = 0; i < this.reallocationStepSize; i++) {
+        util.logEvent(
+          util.EventCategory.Warning,
+          'logging',
+          `Maximum message buffer of ${this.maxBufferSize} reached, ${this.reallocationStepSize} messages will not be logged`,
+          1
+        );
+        this.incrementReadCursor();
+      }
+    }
+    // if every spot in the buffer is filled, add more spots to the buffer
     if (this.numValues === this.buf.length - 1) {
       this.expandBuffer(this.reallocationStepSize);
     }
-
+    // write the message into the buffer and increment the cursor and total size
     this.buf[this.writeCursorIndex] = message;
     this.numValues += 1;
-
     // move the write cursor forwards, wrapping back to the beginning if necessary
     // if we've hit the end of the array, go back to the beginning
-    if (this.writeCursorIndex === this.buf.length - 1) {
-      this.writeCursorIndex = 0;
-    } else {
-      this.writeCursorIndex += 1;
-    }
+    this.incrementWriteCursor();
     this.calledOnWrite();
   }
 
@@ -153,11 +169,7 @@ class MessageRingBuffer {
     // move the read cursor forwards
     if (this.readCursorIndex > this.writeCursorIndex) {
       for (let i = 0; i < increaseBy; i++) {
-        if (this.readCursorIndex === this.buf.length - 1) {
-          this.readCursorIndex = 0;
-        } else {
-          this.readCursorIndex += 1;
-        }
+        this.incrementReadCursor();
       }
     }
 
@@ -167,6 +179,30 @@ class MessageRingBuffer {
       `Expanded ringbuffer size (current size: ${this.buf.length})`,
       3
     );
+  }
+
+  /**
+   * Move the read cursor forwards, wrapping it back to the beginning of the buffer if needed. This does
+   * not edit metadata like the amount of items in the buffer
+   */
+  private incrementReadCursor() {
+    if (this.readCursorIndex === this.buf.length - 1) {
+      this.readCursorIndex = 0;
+    } else {
+      this.readCursorIndex += 1;
+    }
+  }
+
+  /**
+   * Move the write cursor forwards, wrapping it back to the beginning of the buffer if needed. This does
+   * not edit metadata like the amount of items in the buffer
+   */
+  private incrementWriteCursor() {
+    if (this.writeCursorIndex === this.buf.length - 1) {
+      this.writeCursorIndex = 0;
+    } else {
+      this.writeCursorIndex += 1;
+    }
   }
 }
 const channelLogging = new util.RootModule(
