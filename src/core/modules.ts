@@ -314,6 +314,9 @@ export class SubModule extends BaseModule {
   }
 }
 
+/** This global array is where modules are stored at runtime */
+export const modules: RootModule[] = [];
+
 /**
  * The `Dependency` class is meant to provide an elegant way to have "safe" resource access. These resources can be of any type.
  * From strings to objects, you define what you want the dependency's value to be, and it'll be wrapped in easy to use ways to

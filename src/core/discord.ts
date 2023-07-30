@@ -34,8 +34,12 @@ import {
   SlashCommandUserOption,
 } from 'discord.js';
 
-import {modules, guild} from './main.js';
-import {ModuleInputOption, ModuleOptionType, RootModule} from './modules.js';
+import {
+  ModuleInputOption,
+  ModuleOptionType,
+  RootModule,
+  modules,
+} from './modules.js';
 import {botConfig} from './config.js';
 import {EventCategory, logEvent} from './logger.js';
 
@@ -191,6 +195,9 @@ export async function getUnregisteredSlashCommands(): Promise<RootModule[]> {
       'Attempt made to get slash commands before client was initialized'
     );
   }
+  // https://discord.js.org/#/docs/discord.js/main/class/Guild
+  // non-null assertion: the bot not functioning correctly if it's not in any servers is reasonable behavior
+  const guild = client.guilds.cache.first()!;
   /** A list of every root module without a slash command registered */
   const unregisteredSlashCommands: RootModule[] = [];
   /** A discord.js collection of every command registered */
@@ -387,6 +394,7 @@ function setOptionFieldsForCommand(
 export async function registerSlashCommandSet(
   commandSet: SlashCommandBuilder[]
 ) {
+  const guild = client.guilds.cache.first()!;
   // ship the provided list off to discord to discord
   // https://discordjs.guide/creating-your-bot/command-deployment.html#guild-commands
   const rest = new REST().setToken(botConfig.authToken);

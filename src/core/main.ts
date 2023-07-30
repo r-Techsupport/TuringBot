@@ -3,14 +3,13 @@ import {
   APIEmbedField,
   Events,
   APIEmbed,
-  Guild,
   ChatInputCommandInteraction,
   CommandInteractionOption,
 } from 'discord.js';
 
 import {botConfig} from './config.js';
 import {EventCategory, logEvent} from './logger.js';
-import {RootModule, SubModule} from './modules.js';
+import {RootModule, SubModule, modules} from './modules.js';
 import {
   client,
   embed,
@@ -21,22 +20,8 @@ import {
 import path from 'path';
 import {fileURLToPath} from 'url';
 
-// TODO: re-organize the core to take advantage of typescript namespaces (https://www.typescriptlang.org/docs/handbook/namespaces.html).
-
-/**
- * `GuildMember` is the server specific object for a `User`, so that's fetched
- * to get info like nickname, and perform administrative tasks  on a user.
- *
- * `Guild` is the way to interact with server specific functionality.
- *
- * This makes the assumption that the bot is deployed to 1 guild.
- *
- * @see {@link https://discord.js.org/#/docs/discord.js/main/class/Guild}
- */
-// non-null assertion: if the bot isn't in a server, than throwing an error can be considered reasonable behavior
-export let guild: Guild = botConfig.readConfigFromFileSystem();
-
-export const modules: RootModule[] = [];
+// load the config from config.default.jsonc
+botConfig.readConfigFromFileSystem();
 
 logEvent(EventCategory.Info, 'core', 'Starting...', 2);
 
@@ -52,7 +37,6 @@ process.on('unhandledRejection', (error: Error) => {
 
 // When the bot initializes a connection with the discord API
 client.once(Events.ClientReady, async () => {
-  guild = client.guilds.cache.first()!;
   logEvent(EventCategory.Info, 'core', 'Initialized Discord connection', 2);
 
   await import_modules();
@@ -64,7 +48,6 @@ client.once(Events.ClientReady, async () => {
   // TODO: unregister slash commands if disabled, and detect any changes to slash commands
   await registerSlashCommandSet(await Promise.all(newSlashCommands));
   await initializeModules();
-  // TODO: only listen if a prefix, or slash commands enabled
   listenForSlashCommands();
   logEvent(
     EventCategory.Info,
