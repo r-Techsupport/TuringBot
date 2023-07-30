@@ -221,6 +221,7 @@ channelLogging.onInitialize(async () => {
       mBuffer.write(message);
     }
   });
+  const guild = util.client.guilds.cache.first()!;
 
   // refer to the channel map
   mBuffer.onWrite(async () => {
@@ -253,7 +254,7 @@ channelLogging.onInitialize(async () => {
               name: 'Nickname',
               value: `${
                 (
-                  await util.guild.members.fetch(message.author.id)
+                  await guild.members.fetch(message.author.id)
                 ).displayName
               }`,
               inline: true,
@@ -290,7 +291,8 @@ const populate = new util.SubModule(
     },
   ],
   async (args, interaction) => {
-    const loggingCategory = util.guild.channels.cache.get(
+    const guild = util.client.guilds.cache.first()!;
+    const loggingCategory = guild.channels.cache.get(
       populate.config.loggingCategory
     ) as CategoryChannel;
     // check to see if loggingCategory exists and references a valid category.
@@ -307,7 +309,7 @@ const populate = new util.SubModule(
     // iterate over every text channel not in the logging category.
     // text channels have a type of 0
     /** A list of all channels not in the configured logging category */
-    const channels = util.guild.channels.cache.filter(
+    const channels = guild.channels.cache.filter(
       (ch: BaseChannel) => ch.type === 0
     );
     // remove all channels in the logging category
@@ -437,7 +439,7 @@ const populate = new util.SubModule(
                 // eslint-disable-next-line no-case-declarations
                 const jobs = [];
                 for (const channel of unloggedChannels) {
-                  const newChannel = util.guild.channels.create({
+                  const newChannel = guild.channels.create({
                     name: channel[1].name + '-logging',
                     type: ChannelType.GuildText,
                     parent: loggingCategory.id,
