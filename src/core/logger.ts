@@ -7,7 +7,7 @@
 import chalk from 'chalk';
 
 import {botConfig} from './config.js';
-import {client} from './discord.js';
+import {client} from './api.js';
 import {APIEmbed, TextChannel} from 'discord.js';
 
 /**

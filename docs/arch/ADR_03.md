@@ -120,3 +120,6 @@ I can't think of a great way to handle permissions for subcommands. I thought of
 
 }
 ```
+
+# What's breaking?
+This should require no changes to the module code, and the only changes to the core code will happen at the execution stage. They should be small, because the majority of change will be adding new code, not modifying existing code.

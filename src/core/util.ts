@@ -4,8 +4,10 @@
  * that it'll be used kind of like `import * as util from ./core/util`
  *
  */
+export * from './api.js';
+export * from './embed.js';
+export * from './slash_commands.js';
 export * from './config.js';
-export * from './discord.js';
 export * from './logger.js';
 export * from './modules.js';
 export * from './main.js';

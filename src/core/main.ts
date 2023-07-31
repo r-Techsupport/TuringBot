@@ -10,15 +10,15 @@ import {
 import {botConfig} from './config.js';
 import {EventCategory, logEvent} from './logger.js';
 import {RootModule, SubModule, modules} from './modules.js';
+import {client} from './api.js';
+import path from 'path';
+import {fileURLToPath} from 'url';
+import {embed} from './embed.js';
 import {
-  client,
-  embed,
   generateSlashCommandForModule,
   registerSlashCommandSet,
   replyToInteraction,
-} from './discord.js';
-import path from 'path';
-import {fileURLToPath} from 'url';
+} from './slash_commands.js';
 
 // load the config from config.default.jsonc
 botConfig.readConfigFromFileSystem();

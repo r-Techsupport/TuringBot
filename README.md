@@ -4,6 +4,8 @@ A scaleable Discord bot, built as a replacement for https://github.com/r-Techsup
 
 # TODO LIST
 - [ ] Decide on git commit guidelines
+- [ ] Add a function that crops strings over a certain length and adds ... (possibly one that does this automatically for embeds?)
+- [ ]Make docker and k8s mount the config file, instead of baking it into the docker image
 
 **main.ts**
 - [ ] L23: Reorganize the core files to utilize [typescript namespaces](https://www.typescriptlang.org/docs/handbook/namespaces.html)
