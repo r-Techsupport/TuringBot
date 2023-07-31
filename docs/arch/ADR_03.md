@@ -34,7 +34,7 @@ Ideally, the below could be configured per module:
 # Designing a new permissions system
 Because a config for each module is *required*, that's the simplest place to put these perms.
 
-```json
+```jsonc
 {
     // and whatever else a full perms list entails
     "requiredPerms": ["kick", "ban", "mute"],
