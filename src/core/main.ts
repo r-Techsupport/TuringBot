@@ -39,8 +39,7 @@ process.on('unhandledRejection', (error: Error) => {
 client.once(Events.ClientReady, async () => {
   logEvent(EventCategory.Info, 'core', 'Initialized Discord connection', 2);
 
-  await import_modules();
-
+  await importModules();
   const newSlashCommands = [];
   for (const module of modules) {
     newSlashCommands.push(generateSlashCommandForModule(module));
@@ -352,7 +351,7 @@ async function initializeModule(module: RootModule): Promise<void> {
 }
 
 /** Function to import all modules. */
-async function import_modules() {
+async function importModules() {
   // Get a list of commands and subcommands to register
   const moduleLocation = fileURLToPath(
     path.dirname(import.meta.url) + '/../modules'
@@ -363,6 +362,7 @@ async function import_modules() {
   const importPromises = [];
 
   for (const file of files) {
+    console.log('completing imports for:', file);
     // If we've hit a directory, then attempt to fetch the modules from a file with the same name
     // as the directory found
     if (file.isDirectory()) {
