@@ -28,7 +28,7 @@ test: build
 # Format whole project
 format:
 # https://github.com/google/gts
-	npx gts fix
+	npx prettier -w src/ && npx eslint --fix src/
 
 # look for formatting errors
 lint:

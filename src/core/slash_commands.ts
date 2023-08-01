@@ -28,15 +28,15 @@ import {
   BaseMessageOptions,
   Message,
 } from 'discord.js';
-import {client} from './api';
-import {botConfig} from './config';
-import {logEvent, EventCategory} from './logger';
+import {client} from './api.js';
+import {botConfig} from './config.js';
+import {logEvent, EventCategory} from './logger.js';
 import {
   RootModule,
   modules,
   ModuleInputOption,
   ModuleOptionType,
-} from './modules';
+} from './modules.js';
 
 type SlashCommandOption =
   | SlashCommandAttachmentOption

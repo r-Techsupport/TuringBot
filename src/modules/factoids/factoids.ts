@@ -44,7 +44,9 @@ class FactoidCache {
   private maxSize = 30;
 
   /** A reference to the mongo factoid {@link Collection} */
-  factoidCollection: Collection<Factoid> = util.mongo.fetchValue();
+  factoidCollection: Collection<Factoid> = util.mongo
+    .fetchValue()
+    .collection(FACTOID_COLLECTION_NAME);
 
   /**
    * Fetch an item from the cache, retrieving it from the DB if it's not already stored in the cache.
@@ -186,9 +188,11 @@ const factoid = new util.RootModule(
   [util.mongo]
 );
 /** A caching layer that sits between the program and mongodb */
-const factoidCache = new FactoidCache();
+// this is set in the init function because it requires dependencies
+let factoidCache: FactoidCache | undefined;
 
 factoid.onInitialize(async () => {
+  factoidCache = new FactoidCache();
   // Defined outside the event listener so that they don't get redefined every time a message is sent
   const prefixes: string[] = factoid.config.prefixes;
   // listen for a message sent by any of a few prefixes
@@ -204,7 +208,7 @@ factoid.onInitialize(async () => {
     }
     //remove the prefix, split by spaces, and query the DB
     const queryArguments: string[] = message.content.slice(1).split(' ');
-    const queryResult = await factoidCache.get(queryArguments[0]);
+    const queryResult = await factoidCache!.get(queryArguments[0]);
     // no match found
     if (queryResult === null) {
       return;
@@ -295,7 +299,7 @@ factoid.registerSubModule(
         .find(arg => arg.name === 'factoid')!
         .value?.toString();
 
-      const locatedFactoid = await factoidCache.get(factoidName!);
+      const locatedFactoid = await factoidCache!.get(factoidName!);
 
       if (locatedFactoid === null) {
         return util.embed.errorEmbed(
@@ -375,7 +379,7 @@ factoid.registerSubModule(
         .value as string;
 
       // Makes sure the factoid doesn't exist already
-      const locatedFactoid: Factoid | null = await factoidCache.get(
+      const locatedFactoid: Factoid | null = await factoidCache!.get(
         factoidName!
       );
 
@@ -387,7 +391,7 @@ factoid.registerSubModule(
         }
 
         // Delete the factoid
-        const deletionSuccessful = await factoidCache.delete(factoidName);
+        const deletionSuccessful = await factoidCache!.delete(factoidName);
 
         // If nothing got deleted, something done broke
         if (!deletionSuccessful) {
@@ -410,7 +414,7 @@ factoid.registerSubModule(
       };
       // TODO: allow plain text factoids by taking everything after the argument
 
-      await factoidCache.set(factoid).catch(err => {
+      await factoidCache!.set(factoid).catch(err => {
         return util.embed.errorEmbed(
           `Database call failed with error ${(err as Error).name}`
         );
@@ -438,7 +442,7 @@ factoid.registerSubModule(
     async args => {
       const factoidName = args.find(arg => arg.name === 'factoid')!
         .value as string;
-      const deletionSuccessful = await factoidCache.delete(factoidName);
+      const deletionSuccessful = await factoidCache!.delete(factoidName);
 
       if (!deletionSuccessful) {
         return util.embed.errorEmbed(
@@ -471,7 +475,7 @@ factoid.registerSubModule(
         .value as string;
 
       // findOne returns null if it doesn't find the thing
-      const locatedFactoid: Factoid | null = await factoidCache.get(
+      const locatedFactoid: Factoid | null = await factoidCache!.get(
         factoidName
       );
       if (locatedFactoid === null) {
