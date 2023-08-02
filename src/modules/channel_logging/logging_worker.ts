@@ -266,9 +266,7 @@ mBuffer.onWrite(async () => {
           {
             name: 'Nickname',
             value: `${
-              (
-                await guild.members.fetch(message.author.id)
-              ).displayName
+              (await guild.members.fetch(message.author.id)).displayName
             }`,
             inline: true,
           },
