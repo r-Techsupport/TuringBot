@@ -362,7 +362,6 @@ async function importModules() {
   const importPromises = [];
 
   for (const file of files) {
-    console.log('completing imports for:', file);
     // If we've hit a directory, then attempt to fetch the modules from a file with the same name
     // as the directory found
     if (file.isDirectory()) {

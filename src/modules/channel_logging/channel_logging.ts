@@ -19,7 +19,18 @@ import {
 } from 'discord.js';
 import {Worker} from 'worker_threads';
 import * as util from '../../core/util.js';
-import {error} from 'console';
+import {fileURLToPath} from 'url';
+import path from 'path';
+
+// control is not implemented yet
+interface WorkerMessage {
+  type: 'log' | 'control';
+  content: {
+    category: util.EventCategory;
+    description: string;
+    verbosity: util.VerbosityLevel;
+  } | null;
+}
 
 const channelLogging = new util.RootModule(
   'logging',
@@ -29,19 +40,50 @@ const channelLogging = new util.RootModule(
 );
 channelLogging.onInitialize(async () => {
   // spin up a new logging worker thread
-  // const worker = new Worker('./logging_worker.js', {
-  //   workerData: {
-  //     config: channelLogging.config,
-  //     authToken: util.botConfig.authToken,
-  //   },
-  // });
-  // // TODO: passthrough logging and such
-  // worker.on('message', () => {});
-  // // TODO: figure out what to do with this
-  // worker.on('error', err => {
-  //   console.log(error);
-  // });
-  // worker.on('exit', code => {});
+  // this is needed to calculate the worker path relative to the current file
+  const workerPath = fileURLToPath(
+    path.dirname(import.meta.url) + '/logging_worker.js'
+  );
+  const worker = new Worker(workerPath, {
+    workerData: {
+      config: channelLogging.config,
+      authToken: util.botConfig.authToken,
+    },
+  });
+  worker.on('message', (message: WorkerMessage) => {
+    console.log('recieved worker message:', message);
+    if (message.type === 'log') {
+      util.logEvent(
+        message.content!.category,
+        'logging_worker',
+        message.content!.description,
+        message.content!.verbosity
+      );
+    }
+  });
+  worker.on('error', err => {
+    util.logEvent(
+      util.EventCategory.Error,
+      'channel_logging',
+      'Logging worker thread encountered a fatal error: ' + err,
+      1
+    );
+  });
+  worker.on('exit', code => {
+    util.logEvent(
+      util.EventCategory.Warning,
+      'channel_logging',
+      `logging worker thread exited with exit code ${code},` +
+        'this may be normal behavior, or an issue',
+      1
+    );
+  });
+  util.logEvent(
+    util.EventCategory.Info,
+    'channel_logging',
+    'Logging worker thread started.',
+    3
+  );
 });
 
 const populate = new util.SubModule(

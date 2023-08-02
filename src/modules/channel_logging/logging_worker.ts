@@ -10,7 +10,8 @@ import {
   Client,
   GatewayIntentBits,
 } from 'discord.js';
-import {workerData} from 'node:worker_threads';
+import {workerData, parentPort} from 'node:worker_threads';
+
 // because this is a worker thread and we want to split imports and other behavior
 // from the main codebase as much as possible to avoid some nasty side effects,
 // a whole new client is defined
@@ -26,6 +27,24 @@ const client = new Client({
 //const config = workerData.config;
 const config = workerData.config;
 const authToken = workerData.authToken;
+
+/** pass a message to the main thread that will then be passed to the event logger */
+function logEvent(
+  category: 'EE' | 'WW' | 'II',
+  description: string,
+  verbosity: 1 | 2 | 3
+) {
+  console.log('logging message');
+  parentPort?.postMessage({
+    type: 'log',
+    content: {
+      category: category,
+      description: description,
+      verbosity: verbosity,
+    },
+  });
+}
+
 // log the worker thread into discord
 await client.login(authToken);
 
@@ -38,8 +57,6 @@ class MessageRingBuffer {
    * and decrease by whatever `reallocationStepSize` is set to, but it will not ever be less than `initialBufferSize`
    */
   initialBufferSize: number;
-  // TODO: add a max buffer size, this behavior can be implemented by over-writing data and shoving the read cursor forwards.
-  // it's a lossy method of keeping memory under control, but we could maybe add an event
   /**
    * The maximum size that this buffer is allowed to grow to. Once the maximum amount is hit, {@link reallocationStepSize}
    * # of messages will be dropped from the buffer, and not logged
@@ -108,13 +125,11 @@ class MessageRingBuffer {
       this.readCursorIndex = 0;
       this.writeCursorIndex = 0;
       this.buf.length -= this.reallocationStepSize;
-      // TODO: re-implement once worker threads are up and running with message passing
-      //   util.logEvent(
-      //     util.EventCategory.Info,
-      //     `Shrunk message ringbuffer size (new size: ${this.buf.length})`,
-      //     'channel-logging',
-      //     3
-      //   );
+      logEvent(
+        'II',
+        `Shrunk message ringbuffer size (new size: ${this.buf.length})`,
+        3
+      );
     }
 
     return returnVal;
@@ -134,13 +149,11 @@ class MessageRingBuffer {
     // messages without reading them, effectively dropping them from the buffer
     if (this.numValues === this.maxBufferSize) {
       for (let i = 0; i < this.reallocationStepSize; i++) {
-        // TODO: reimpl worker message yada  yadad
-        // util.logEvent(
-        //   util.EventCategory.Warning,
-        //   'logging',
-        //   `Maximum message buffer of ${this.maxBufferSize} reached, ${this.reallocationStepSize} messages will not be logged`,
-        //   1
-        // );
+        logEvent(
+          'WW',
+          `Maximum message buffer of ${this.maxBufferSize} reached, ${this.reallocationStepSize} messages will not be logged`,
+          1
+        );
         this.incrementReadCursor();
       }
     }
@@ -183,13 +196,11 @@ class MessageRingBuffer {
       }
     }
 
-    // TODO: replicate behavior with message passing once worker threads are set up
-    // util.logEvent(
-    //   util.EventCategory.Info,
-    //   'channel-logging',
-    //   `Expanded ringbuffer size (current size: ${this.buf.length})`,
-    //   3
-    // );
+    logEvent(
+      'II',
+      `Expanded ringbuffer size (current size: ${this.buf.length})`,
+      3
+    );
   }
 
   /**

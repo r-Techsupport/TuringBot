@@ -23,7 +23,7 @@ start: build
 
 # Compile code and run unit tests https://nodejs.org/api/test.html#test-runner
 test: build
-	node --test ./target/test
+	node --test ./target/tests
 
 # Format whole project
 format:
