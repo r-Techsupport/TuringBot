@@ -339,6 +339,7 @@ async function initializeModule(module: RootModule): Promise<void> {
           `Module \`${module.name}\` ran into an error during initialization call. This module will be disabled`,
           1
         );
+        module.config.enabled = false;
       });
   } else {
     logEvent(
