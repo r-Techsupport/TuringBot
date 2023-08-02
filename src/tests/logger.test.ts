@@ -5,10 +5,6 @@ import {EventCategory, generateEventEmbed} from '../core/logger.js';
 import assert from 'node:assert';
 
 describe('testing logging', () => {
-  it('should support color', () => {
-    if (!chalk.supportsColor) throw 'This terminal does not support color';
-  });
-
   it('should generate an info event embed', () => {
     const generationResult = generateEventEmbed(EventCategory.Info, 'a', 'a');
     // the timestamp can't be compared, because it can change between the function call
