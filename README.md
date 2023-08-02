@@ -1,5 +1,6 @@
 # TuringBot
-
+![CI](https://github.com/github/docs/actions/workflows/main.yml/badge.svg)
+[![Code Style: Google](https://img.shields.io/badge/code%20style-google-blueviolet.svg)](https://github.com/google/gts)
 A scaleable Discord bot, built as a replacement for https://github.com/r-Techsupport/TechSupportBot
 
 # TODO LIST

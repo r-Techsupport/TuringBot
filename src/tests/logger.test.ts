@@ -1,5 +1,4 @@
 import {describe, it} from 'node:test';
-import chalk from 'chalk';
 
 import {EventCategory, generateEventEmbed} from '../core/logger.js';
 import assert from 'node:assert';
