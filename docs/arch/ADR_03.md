@@ -37,7 +37,7 @@ Because a config for each module is *required*, that's the simplest place to put
 ```jsonc
 {
     // and whatever else a full perms list entails
-    "requiredPerms": ["kick", "ban", "mute"],
+    "requiredPerms": ["kick", "ban", "timeout", "manage_roles", "administrator"],
     // Users takes the highest precedence, then role, then channel, than category
     // Denied takes precedence over allowed
     // if nothing is set, than all is enabled by default.
@@ -123,3 +123,10 @@ I can't think of a great way to handle permissions for subcommands. I thought of
 
 # What's breaking?
 This should require no changes to the module code, and the only changes to the core code will happen at the execution stage. They should be small, because the majority of change will be adding new code, not modifying existing code.
+
+# Revisions
+
+2023-08-03, Arc
+
+There's over 40 distinct perms, and most of them are redundant in some form or another. 
+The permissions were updated to include 'manage_users' and 'administrator', as they are plausible requirements
