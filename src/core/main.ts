@@ -89,7 +89,7 @@ function listenForSlashCommands() {
     }
     const command = interaction.commandName;
     const group = interaction.options.getSubcommandGroup();
-    const subcommand = interaction.options.getSubcommand();
+    const subcommand = interaction.options.getSubcommand(false);
 
     const commandPath: string[] = [];
     commandPath.push(command);
@@ -223,8 +223,8 @@ async function executeModule(
   let options: CommandInteractionOption[];
   // though a bit odd, the options are actually located at a different place in the object
   // tree when a subcommand is used
-  const foundSubcommand = interaction.options.getSubcommand();
-  if (foundSubcommand !== undefined) {
+  const foundSubcommand = interaction.options.getSubcommand(false);
+  if (foundSubcommand !== null) {
     options = interaction.options.data[0].options!;
   } else {
     options = Array.from(interaction.options.data);

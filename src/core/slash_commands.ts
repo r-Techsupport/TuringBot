@@ -131,6 +131,15 @@ export async function generateSlashCommandForModule(
       });
     }
   }
+  if (module.submodules.length === 0) {
+    slashCommand.setName(module.name);
+    slashCommand.setDescription(module.description);
+    for (const option of module.options) {
+      addOptionToCommand(slashCommand, option);
+    }
+    slashCommand;
+  }
+
   return slashCommand;
 }
 /**
