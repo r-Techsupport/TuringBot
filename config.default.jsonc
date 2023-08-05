@@ -79,6 +79,9 @@
     },
     "whois": {
       "enabled": true
+    },
+    "conch": {
+      "enabled": true
     }
   }
 }
