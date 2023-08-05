@@ -73,6 +73,12 @@
       "enabled": true,
       // a list of characters that can be used as a prefix to trigger a factoid
       "prefixes": ["?"]
+    },
+    "note": {
+      "enabled": true
+    },
+    "whois": {
+      "enabled": true
     }
   }
 }
