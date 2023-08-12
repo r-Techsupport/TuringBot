@@ -200,7 +200,10 @@ async function executeModule(
   module: RootModule | SubModule,
   interaction: ChatInputCommandInteraction
 ) {
-  await interaction.deferReply();
+  // deferReply wasn't set or it is false
+  if (module.deferReply === undefined || module.deferReply === true) {
+    await interaction.deferReply();
+  }
 
   // TODO: move this to a separate function
   // no submodules, it's safe to execute the command and return
@@ -261,7 +264,16 @@ async function executeModule(
               '```'
           ),
         ],
-      });
+      })
+        // If the command times out, it would return an error which would call this and make an infinite recursion loop
+        .catch((err: Error) => {
+          logEvent(
+            EventCategory.Error,
+            'core',
+            `Couldn't respond message with error! Trace: \`${err.message}\``,
+            3
+          );
+        });
     });
 }
 

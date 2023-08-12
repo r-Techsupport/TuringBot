@@ -27,6 +27,13 @@ import {
   InteractionReplyOptions,
   BaseMessageOptions,
   Message,
+  InteractionResponse,
+  TextInputBuilder,
+  ModalBuilder,
+  TextInputStyle,
+  ActionRowBuilder,
+  RestOrArray,
+  ModalActionRowComponentBuilder,
 } from 'discord.js';
 import {client} from './api.js';
 import {botConfig} from './config.js';
@@ -298,10 +305,71 @@ export async function replyToInteraction(
     | MessagePayload
     | InteractionReplyOptions
     | BaseMessageOptions
-): Promise<Message<boolean>> {
+): Promise<InteractionResponse<boolean> | Message<boolean>> {
   if (interaction.replied) {
     return await interaction.followUp(payload);
   }
-  // Not .reply() since deferReply doesn't count as a reply and hence .replied is still false
-  return await interaction.editReply(payload);
+
+  if (interaction.deferred) {
+    return await interaction.editReply(payload);
+  }
+
+  return await interaction.reply(payload);
+}
+
+/**
+ * A single modals input field
+ * @param id The ID to refer to the input field as
+ * @param label The label of the input field
+ * @param style The style to use (Short or Paragraph)
+ * @param maxLength The maximum input length
+ */
+interface inputFieldOptions {
+  id: string;
+  label: string;
+  style: TextInputStyle;
+  maxLength: number;
+}
+
+/**
+ * The modal generation options
+ * @param id The ID to refer to the modal as
+ * @param title The title of the modal
+ * @param fields An array of inputFieldOptions
+ */
+interface modalOptions {
+  id: string;
+  title: string;
+  fields: inputFieldOptions[];
+}
+
+/**
+ * Generates a modal from args
+ * Takes a {@link inputFieldOptions} object as an argument
+ * @returns The finished modal object
+ */
+export function generateModal({id, title, fields}: modalOptions): ModalBuilder {
+  const modal: ModalBuilder = new ModalBuilder()
+    .setCustomId(id)
+    .setTitle(title);
+
+  const components: RestOrArray<ActionRowBuilder<TextInputBuilder>> = [];
+
+  // Adds all components to the modal
+  for (const field of fields) {
+    const modalComponent: TextInputBuilder = new TextInputBuilder()
+      .setCustomId(field.id)
+      .setLabel(field.label)
+      .setStyle(field.style)
+      .setMaxLength(field.maxLength);
+
+    const actionRow =
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+        modalComponent
+      );
+    components.push(actionRow);
+  }
+  modal.addComponents(components);
+
+  return modal;
 }

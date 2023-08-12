@@ -14,6 +14,11 @@ import {
   ActionRowBuilder,
   InteractionResponse,
   Message,
+  APIEmbedField,
+  Colors,
+  EmbedBuilder,
+  ColorResolvable,
+  EmbedFooterOptions,
 } from 'discord.js';
 import {replyToInteraction} from './slash_commands.js';
 
@@ -25,6 +30,24 @@ export enum ConfirmEmbedResponse {
   Confirmed = 'confirmed',
   Denied = 'denied',
 }
+
+/**
+ * Interface used when generating a manual embed, holds everything needed to create it
+ * @param color Optional embed color
+ * @param title Optional embed title
+ * @param description Required embed description
+ * @param footer Optional embed footer
+ * @param fields Optional field array
+ */
+interface embedGenerator {
+  color?: ColorResolvable;
+  title?: string;
+  // Required by the API
+  description: string;
+  footer?: EmbedFooterOptions;
+  fields?: APIEmbedField[];
+}
+
 /**
  * Helper utilities used to speed up embed work
  */
@@ -47,6 +70,37 @@ export const embed = {
   simpleEmbed(displayText: string, otherOptions: APIEmbed = {}): APIEmbed {
     otherOptions.description = displayText;
     return otherOptions;
+  },
+
+  /**
+   * Method to create a factoid with manually defined parameters
+   * Takes a {@link embedGenerator} object as an argument.
+   * @returns The finished embed object
+   */
+  manualEmbed({
+    color = Colors.Blue,
+    title,
+    description,
+    footer,
+    fields,
+  }: embedGenerator): APIEmbed {
+    const embed: EmbedBuilder = new EmbedBuilder();
+
+    embed.setColor(color);
+    // Required field
+    embed.setDescription(description);
+
+    if (title !== undefined) {
+      embed.setTitle(title);
+    }
+    if (footer !== undefined) {
+      embed.setFooter(footer);
+    }
+    if (fields !== undefined) {
+      embed.setFields(fields);
+    }
+
+    return embed.toJSON();
   },
 
   /**

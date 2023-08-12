@@ -140,6 +140,10 @@ export class BaseModule {
   executeCommand: ModuleCommandFunction = async () => {};
 
   /**
+   * Whether or not to deferReply after the module is started. Used when a modal is shown.
+   */
+  deferReply: boolean | undefined;
+  /**
    * Whether or not the `initialize()` call was completed. If your initialization function never returns, you need to manually
    * set this to true if you want your command to be accessible. It should automatically be set to true by the core if you don't
    * manually set it and your initialization function completes without error.
@@ -217,16 +221,19 @@ export class RootModule extends BaseModule {
    * @param options A list of {@link ModuleInputOption}s to be registered with discord and passed to your command as input.
    * This should only be defined if you have no subcommands.
    * @param onCommandExecute This function is called when a slash command is sent in discord.
+   * @param deferReply This should only be set if deferReply can't be used for some reason (eg a modal)
    */
   constructor(
     command: string,
     description: string,
     dependencies: Dependency[],
     options?: ModuleInputOption[],
-    onCommandExecute?: ModuleCommandFunction
+    onCommandExecute?: ModuleCommandFunction,
+    deferReply?: boolean
   ) {
     super(command, description, options ?? [], onCommandExecute);
     this.dependencies = dependencies;
+    this.deferReply = deferReply;
     // the preset for this is a "safe" default,
     // so we just don't set it at all
     if (onCommandExecute !== undefined) {
@@ -290,6 +297,8 @@ export class SubModule extends BaseModule {
    * @param options If this module has no submodules, this is a list of options that will be registered with discord,
    * and passed to your command when it's executed
    * @param onCommandExecute This function is called when a user executes a slash command in discord.
+   * @param deferReply This should only be set if deferReply can't be used for some reason (eg a modal)
+
    */
   constructor(
     command: string,
