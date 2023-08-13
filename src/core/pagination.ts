@@ -43,7 +43,7 @@ const trashButton: ButtonBuilder = new ButtonBuilder()
   .setStyle(ButtonStyle.Danger);
 
 /**
- * Function to get the pagination action row with buttons set up properly
+ * Function to get the pagination control row with buttons set up properly
  * @param payloads The payloads used, used to make sure the arrows are disabled properly
  * @returns The configured action row
  */
@@ -72,9 +72,10 @@ function getRow(payloads: BaseMessageOptions[]): ActionRowBuilder {
 }
 
 /**
- * Function to get the payload with action rows
+ * Function to get the payload with formatted action rows
  * @param payloads The payloads to be paginated
- * @param paginationRow The pagination action row containing the components. Set to any because typescript doesn't recognize ActionRowBuilder as a valid object.
+ * @param paginationRow The pagination control row
+ * Set to any because typescript doesn't recognize ActionRowBuilder as a valid object, even though it is.
  * @returns The message payload to sent
  */
 function getPayload(
@@ -87,8 +88,8 @@ function getPayload(
     payloads[currentPage - 1]
   );
 
-  // If there isn't a pagination row and the old components don't exist, set components to an empty array
-  // This is the case because the final .editReply() would keep the old components,
+  // If there isn't a pagination row to append and the old components don't exist, set components to an empty array
+  // This is handled because the final .editReply() would keep the old components,
   // the component attribute has to be set to edit the response properly.
   // Returns early, no further component management is needed.
   if (paginationRow === null && payload.components === undefined) {
@@ -96,7 +97,9 @@ function getPayload(
     return payload;
   }
 
+  // If it is null but there weren't existing action rows, something went wrong with pagination as this isn't supposed to happen.
   if (paginationRow === null) {
+    // Returns an error in place of the actual payload
     return {
       embeds: [
         util.embed.errorEmbed(
@@ -106,11 +109,11 @@ function getPayload(
     };
   }
 
-  // If there ARE existing payload components, append the pagination action row.
+  // If there ARE existing payload components, append the pagination control row.
   if (payload.components !== undefined) {
     payload.components.push(paginationRow);
   }
-  // If there are NOT any existing payload components, set the pagination action row to be the whole array.
+  // If there are NOT any existing payload components, set the attribute to the control row.
   // Has to be done like this since the attribute is undefined prior to this assignment.
   else {
     payload.components = [paginationRow];
@@ -122,7 +125,7 @@ function getPayload(
 /**
  * Function to paginate a set of payloads that times out after a given time.
  * @param interaction The interaction to respond to
- * @param payloads An array of message payloads to send
+ * @param payloads The array of message payloads to paginate
  * @param time The time in seconds to time out after
  * @param deleteAfter Whether to delete the message after it times out
  */
@@ -136,14 +139,14 @@ async function paginate(
   let payload = getPayload(payloads, getRow(payloads));
   let botResponse = await util.replyToInteraction(interaction, payload);
 
-  // Sets up a listener to listen for button pushes
+  // Sets up a listener to listen for control button pushes
   const continueButtonListener = botResponse.createMessageComponentCollector({
     componentType: ComponentType.Button,
     filter: i => interaction.user.id === i.user.id,
     time: time * 1000,
   });
 
-  // Executed every time a button is pushed
+  // Executed every time a button is pressed
   continueButtonListener.on(
     'collect',
     async (buttonInteraction: ButtonInteraction) => {
@@ -153,7 +156,6 @@ async function paginate(
             await buttonInteraction.deferUpdate();
             currentPage--;
 
-            // Prepares the payload to send and sends it
             payload = getPayload(payloads, getRow(payloads));
             botResponse = await interaction.editReply(payload);
 
@@ -163,7 +165,6 @@ async function paginate(
             await buttonInteraction.deferUpdate();
             currentPage++;
 
-            // Prepares the payload to send and sends it
             payload = getPayload(payloads, getRow(payloads));
             botResponse = await interaction.editReply(payload);
 
@@ -192,7 +193,7 @@ async function paginate(
   // Executed when the collector is stopped or times out.
   continueButtonListener.on('end', async () => {
     // If the interaction is supposed to be deleted afterwards and wasn't stopped manually, delete it
-    if (!stoppedManually && deleteAfter) {
+    if (deleteAfter && !stoppedManually) {
       await interaction.deleteReply();
     }
     // Otherwise just remove the buttons
@@ -200,9 +201,8 @@ async function paginate(
       const payload = await getPayload(payloads);
       await interaction.editReply(payload);
     }
-    // Resets the page counter for further uses
+    // Resets the variables for further uses
     currentPage = 1;
-    // Resets the manual stop marker as well
     stoppedManually = false;
   });
 }
@@ -221,14 +221,26 @@ export async function paginatePayloads(
   deleteAfter: boolean
 ): Promise<void> {
   if (payloads.length === 0) {
-    console.log('No embeds were supplied to the pagination function!');
+    await util.replyToInteraction(interaction, {
+      embeds: [
+        util.embed.errorEmbed(
+          'No embeds were supplied to the pagination function!'
+        ),
+      ],
+    });
     return;
   }
 
   // Makes sure that the 5x5 grid isn't filled so the pagination controls can be added
   for (const payload of payloads) {
     if (payload.components !== undefined && payload.components.length > 5) {
-      console.log('A payload has more than 5 action rows, unable to paginate!');
+      await util.replyToInteraction(interaction, {
+        embeds: [
+          util.embed.errorEmbed(
+            'A payload has more than 5 action rows, unable to paginate!'
+          ),
+        ],
+      });
       return;
     }
   }
