@@ -82,6 +82,18 @@
     },
     "conch": {
       "enabled": true
+    },
+    "apply": {
+      "enabled": true,
+      // Channel to send the applications to
+      "channel": "",
+      // All questions have a strict 45 character limit
+      "questions": []
+    },
+    "application": {
+      "enabled": true,
+      "applyRoleOnApprove": false,
+      "roleIdOnApprove": ""
     }
   }
 }
