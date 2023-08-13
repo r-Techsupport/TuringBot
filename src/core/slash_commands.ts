@@ -318,7 +318,7 @@ export async function replyToInteraction(
 }
 
 /**
- * A single modals input field
+ * A single input field of a modal
  * @param id The ID to refer to the input field as
  * @param label The label of the input field
  * @param style The style to use (Short or Paragraph)

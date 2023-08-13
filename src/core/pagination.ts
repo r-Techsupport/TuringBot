@@ -67,7 +67,7 @@ function getRow(payloads: BaseMessageOptions[]): ActionRowBuilder {
     stopButton,
     trashButton
   );
-    
+
   return row;
 }
 
@@ -96,8 +96,14 @@ function getPayload(
     return payload;
   }
 
-  if (paginationRow === null )  {
-    return {embeds: [util.embed.errorEmbed("Pagination error: The pagination row is null, payload preparation failed")]};
+  if (paginationRow === null) {
+    return {
+      embeds: [
+        util.embed.errorEmbed(
+          'Pagination error: The pagination row is null, payload preparation failed'
+        ),
+      ],
+    };
   }
 
   // If there ARE existing payload components, append the pagination action row.
