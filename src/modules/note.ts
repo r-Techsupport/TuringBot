@@ -1,6 +1,6 @@
 /**
  * @file
- * This file contains the 'notes' module definition.
+ * This file contains the 'notes' and 'whois' module definition.
  */
 
 import type {Collection, Db} from 'mongodb';

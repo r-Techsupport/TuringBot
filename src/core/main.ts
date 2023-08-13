@@ -201,7 +201,7 @@ async function executeModule(
   interaction: ChatInputCommandInteraction
 ) {
   // deferReply wasn't set or it is false
-  if (module.deferReply === undefined || module.deferReply === true) {
+  if (module.deferReply === true) {
     await interaction.deferReply();
   }
 

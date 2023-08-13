@@ -3,6 +3,9 @@
  * This file contains the 'conch' module definition.
  */
 
+import {Colors, EmbedBuilder} from 'discord.js';
+import * as util from '../core/util.js';
+
 const RESPONSES: string[] = [
   'As I see it, yes.',
   'Ask again later.',
@@ -27,9 +30,6 @@ const RESPONSES: string[] = [
 ];
 
 const THUMBNAIL_URL = 'https://i.imgur.com/vdvGrsR.png';
-
-import {Colors, EmbedBuilder} from 'discord.js';
-import * as util from '../core/util.js';
 
 function getRandomReply(): string {
   return RESPONSES[Math.floor(Math.random() * RESPONSES.length)];

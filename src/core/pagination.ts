@@ -75,11 +75,13 @@ function getRow(payloads: BaseMessageOptions[]): ActionRowBuilder {
  * Function to get the payload with formatted action rows
  * @param payloads The payloads to be paginated
  * @param paginationRow The pagination control row
- * Set to any because typescript doesn't recognize ActionRowBuilder as a valid object, even though it is.
  * @returns The message payload to sent
  */
 function getPayload(
   payloads: BaseMessageOptions[],
+  // Any has to be set here because typescript doesn't recognize ActionRowBuilder as a valid type for
+  // components, even though it is.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   paginationRow: any = null
 ): BaseMessageOptions {
   // Makes a structured clone (deep copy) of the payload so it can be modified without modifying the
@@ -152,7 +154,7 @@ async function paginate(
     async (buttonInteraction: ButtonInteraction) => {
       if (buttonInteraction.component instanceof ButtonComponent) {
         switch (buttonInteraction.component.customId) {
-          case 'prevButton': {
+          case 'prevButton':
             await buttonInteraction.deferUpdate();
             currentPage--;
 
@@ -160,8 +162,8 @@ async function paginate(
             botResponse = await interaction.editReply(payload);
 
             break;
-          }
-          case 'nextButton': {
+
+          case 'nextButton':
             await buttonInteraction.deferUpdate();
             currentPage++;
 
@@ -169,22 +171,21 @@ async function paginate(
             botResponse = await interaction.editReply(payload);
 
             break;
-          }
-          case 'stopButton': {
+
+          case 'stopButton':
             await buttonInteraction.deferUpdate();
 
             stoppedManually = true;
             continueButtonListener.stop();
             return;
-          }
-          case 'trashButton': {
+
+          case 'trashButton':
             await buttonInteraction.deferUpdate();
 
             await interaction.deleteReply();
 
             continueButtonListener.stop();
             return;
-          }
         }
       }
     }

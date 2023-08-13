@@ -140,9 +140,10 @@ export class BaseModule {
   executeCommand: ModuleCommandFunction = async () => {};
 
   /**
-   * Whether or not to deferReply after the module is started. Used when a modal is shown.
+   * Whether or not to deferReply after the module is started. Should be used when a module can't be deferred for some reason.
+   * E.g. A modal is sent
    */
-  deferReply: boolean | undefined;
+  deferReply = true;
   /**
    * Whether or not the `initialize()` call was completed. If your initialization function never returns, you need to manually
    * set this to true if you want your command to be accessible. It should automatically be set to true by the core if you don't
@@ -229,7 +230,7 @@ export class RootModule extends BaseModule {
     dependencies: Dependency[],
     options?: ModuleInputOption[],
     onCommandExecute?: ModuleCommandFunction,
-    deferReply?: boolean
+    deferReply = true
   ) {
     super(command, description, options ?? [], onCommandExecute);
     this.dependencies = dependencies;
@@ -298,7 +299,6 @@ export class SubModule extends BaseModule {
    * and passed to your command when it's executed
    * @param onCommandExecute This function is called when a user executes a slash command in discord.
    * @param deferReply This should only be set if deferReply can't be used for some reason (eg a modal)
-
    */
   constructor(
     command: string,
