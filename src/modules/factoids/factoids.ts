@@ -227,13 +227,11 @@ async function confirmDeletion(
       interaction
     )
   ) {
-    case util.ConfirmEmbedResponse.Denied: {
+    case util.ConfirmEmbedResponse.Denied:
       return false;
-    }
 
-    case util.ConfirmEmbedResponse.Confirmed: {
+    case util.ConfirmEmbedResponse.Confirmed:
       return true;
-    }
   }
 }
 

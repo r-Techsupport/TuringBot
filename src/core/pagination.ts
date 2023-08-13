@@ -16,6 +16,7 @@ import * as util from '../core/util.js';
 
 let currentPage = 1;
 let stoppedManually = false;
+let deletedManually = false;
 
 const prevButton: ButtonBuilder = new ButtonBuilder()
   .setCustomId('prevButton')
@@ -182,6 +183,7 @@ async function paginate(
           case 'trashButton':
             await buttonInteraction.deferUpdate();
 
+            deletedManually = true;
             await interaction.deleteReply();
 
             continueButtonListener.stop();
@@ -198,13 +200,14 @@ async function paginate(
       await interaction.deleteReply();
     }
     // Otherwise just remove the buttons
-    else {
-      const payload = await getPayload(payloads);
+    else if (!deletedManually) {
+      const payload = getPayload(payloads);
       await interaction.editReply(payload);
     }
     // Resets the variables for further uses
     currentPage = 1;
     stoppedManually = false;
+    deletedManually = false;
   });
 }
 
