@@ -114,7 +114,13 @@ const apply = new util.RootModule(
         status: 'Pending',
       })) !== null
     ) {
-      return util.embed.errorEmbed('You already have a pending application!');
+      await util.replyToInteraction(interaction, {
+        embeds: [
+          util.embed.errorEmbed('You already have a pending application!'),
+        ],
+        ephemeral: true,
+      });
+      return;
     }
 
     // Defines the modal and its fields, then pushes it to the user
@@ -190,6 +196,7 @@ const apply = new util.RootModule(
       embeds: [
         util.embed.successEmbed('Succesfully registered this application!'),
       ],
+      ephemeral: true,
     });
   },
   // Won't deferrreply, since sending a modal requires the interaction to not be deferred or replied to
@@ -451,7 +458,7 @@ application.registerSubModule(
         )
       ) {
         case util.ConfirmEmbedResponse.Denied:
-          return util.embed.successEmbed("No applications were deleted.");
+          return util.embed.successEmbed('No applications were deleted.');
 
         case util.ConfirmEmbedResponse.Confirmed:
           break;
@@ -466,7 +473,9 @@ application.registerSubModule(
       // Deletes all applications from a user
       await applicationCollection.deleteMany({user: user.id});
 
-      return util.embed.successEmbed(`All applications for \`${user.tag}\` succesfully deleted!`);
+      return util.embed.successEmbed(
+        `All applications for \`${user.tag}\` succesfully deleted!`
+      );
     }
   )
 );
