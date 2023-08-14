@@ -94,6 +94,15 @@
       "enabled": true,
       "applyRoleOnApprove": false,
       "roleIdOnApprove": ""
-    }
+    },
+  "google": {
+    "enabled": true,
+    "ApiKey": "",
+    "CseId": ""
+  },
+  // API key is shared with google
+  "youtube": {
+    "enabled": true
+  }
   }
 }
