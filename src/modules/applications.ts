@@ -411,8 +411,11 @@ application.registerSubModule(
 
       // Sets the status to denied and pushes it to the db
       locatedApplication.status = 'Denied';
-      await applicationCollection.deleteOne({_id: locatedApplication._id});
-      await applicationCollection.insertOne(locatedApplication);
+      await applicationCollection.replaceOne(
+        {_id: locatedApplication._id},
+        locatedApplication,
+        {upsert: true}
+      );
 
       if (silentFlag !== true) {
         // Catches all errors since the only possible one is that the user has disabled dms
