@@ -17,6 +17,7 @@
     "bufferutil": "^4.0.7",
     "chalk": "^4.1.2",
     "discord.js": "^14.11.0",
+    "googleapis": "^124.0.0",
     "jsonc-parser": "^3.2.0",
     "mongodb": "^5.6.0",
     "node": "^19.8.1",

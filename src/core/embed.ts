@@ -34,6 +34,7 @@ export enum ConfirmEmbedResponse {
 /**
  * Interface used when generating a manual embed, holds everything needed to create it
  * @param color Optional embed color
+ * @param thumbnail Optional embed thumbnail URL
  * @param title Optional embed title
  * @param description Required embed description
  * @param footer Optional embed footer
@@ -42,6 +43,7 @@ export enum ConfirmEmbedResponse {
 interface embedGenerator {
   color?: ColorResolvable;
   title?: string;
+  thumbnail?: string;
   // Required by the API
   description: string;
   footer?: EmbedFooterOptions;
@@ -79,6 +81,7 @@ export const embed = {
    */
   manualEmbed({
     color = Colors.Blue,
+    thumbnail,
     title,
     description,
     footer,
@@ -90,6 +93,9 @@ export const embed = {
     // Required field
     embed.setDescription(description);
 
+    if (thumbnail !== undefined) {
+      embed.setThumbnail(thumbnail);
+    }
     if (title !== undefined) {
       embed.setTitle(title);
     }
