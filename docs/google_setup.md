@@ -11,13 +11,14 @@ In order to use any of the google APIs, you will need to set a Cloud project up.
 3) Click on `New project` <br>
 ![image](https://github.com/zleyyij/TuringBot/assets/100243410/6209939d-568c-41b6-a24d-2dd86fd04008)
 
-4) Configure it as you wish, hit create <br>
+4) Configure it as you wish, click `Create` <br>
 ![image](https://github.com/zleyyij/TuringBot/assets/100243410/7dea6054-c289-43f5-addc-aad5c53f3791)
 
 The Project is set up now, a notification will pop up saying it is creating. Wait for it to finish creating the project and hit `Select project` <br>
 ![image](https://github.com/zleyyij/TuringBot/assets/100243410/6c99d0e3-af1e-45dd-99cf-9447b0ac10f7)
 
-If the notification doesn't appear for whatever reason you can also click on `Select project` and click on your new project. <br>
+If the notification doesn't appear for whatever reason you can also click on `Select project` in the top left corner and click on your new project. <br>
+![image](https://github.com/zleyyij/TuringBot/assets/100243410/821929a7-bb25-4d32-ba2c-d1e36911d4a3)
 ![image](https://github.com/zleyyij/TuringBot/assets/100243410/1f0b4802-b85b-45d6-9b83-894e884dc615)
 
 # Enabling the relevant APIs
@@ -61,7 +62,7 @@ Now that we have the relevant APIs enabled and have a valid API key prepared, we
 ![image](https://github.com/zleyyij/TuringBot/assets/100243410/b94f4325-05fd-4004-9b7c-d8aa573531c3)
 
 
-You now have all the necessary credentials to use Google with TuringBot.
+You now have all the necessary credentials to use the Google module.
 
 [//]: # (All credentials and Ids used in this guide have been invalidated.)
 
