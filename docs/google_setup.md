@@ -1,5 +1,5 @@
 
-This guide will show you how to set up the Google API and Custom search engine (CSE) for usage with the google extension. All of this is free if you don't exceed 100 queries a day for the CSE API.
+This guide will show you how to set up the Google API and Custom search engine (CSE) for usage with the google module. All of this is free if you don't exceed 100 queries a day for the CSE API.
 
 # Setting up the Google Cloud project
 In order to use any of the google APIs, you will need to set a Cloud project up.
