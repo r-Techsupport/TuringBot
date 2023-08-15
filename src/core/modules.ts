@@ -246,9 +246,9 @@ export class RootModule extends BaseModule {
       this.enabled = this.config.enabled;
     } else {
       logEvent(
-        EventCategory.Warning,
+        EventCategory.Error,
         'core',
-        `No config option found for "${this.name}" in the config,` +
+        `No config option found for "${this.name}" in the config, ` +
           'this module will be disabled.',
         1
       );
@@ -326,6 +326,13 @@ export class SubModule extends BaseModule {
 /** This global array is where modules are stored at runtime */
 export const modules: RootModule[] = [];
 
+export enum DependencyStatus {
+  Succeeded,
+  Pending,
+  Failed,
+  Unattempted,
+}
+
 /**
  * The `Dependency` class is meant to provide an elegant way to have "safe" resource access. These resources can be of any type.
  * From strings to objects, you define what you want the dependency's value to be, and it'll be wrapped in easy to use ways to
@@ -356,6 +363,10 @@ export class Dependency {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private value: null | Error | NonNullable<any> = null;
 
+  rawPromise: Promise<unknown> | undefined;
+
+  status: DependencyStatus = DependencyStatus.Unattempted;
+
   /**
    *
    * @param name this value is displayed in error/info/status messages, and should be a short, descriptive term
@@ -382,47 +393,43 @@ export class Dependency {
    *
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async resolve(): Promise<any> {
-    // if the value is not null, and not an error, then this dependency has already
-    // been resolved.
-    // see https://stackoverflow.com/questions/30469261/checking-for-typeof-error-in-js
-    if (this.value !== null && !this.failed()) {
-      return this.value;
+  async resolve(): Promise<DependencyStatus> {
+    // cheekily wait for the first time resolve() was called to do the work
+    if (this.status === DependencyStatus.Pending) {
+      await this.rawPromise;
+      return this.status;
     }
-
-    // If there is an error stored, explicitly return `null`.
-    // funnily enough, when this value is null, you don't want
-    // to return null
-    // Ideally, the inside of the module should *never* come into contact with
-    // this null value, the module execution code should never be called at all
-    if (this.value instanceof Error) {
-      return null;
+    if (this.status !== DependencyStatus.Unattempted) {
+      return this.status;
     }
-    // if this.value is null no attempt has been made to resolve the value,
-    // so try to do that
-    try {
-      const resolutionResult = await this.attemptResolution();
-      this.value = resolutionResult;
-      logEvent(
-        EventCategory.Info,
-        'core',
-        'Successfully resolved dependency: ' + this.name,
-        3
-      );
-      return this.value;
-    } catch (err) {
+    this.status = DependencyStatus.Pending;
+    this.rawPromise = this.attemptResolution().catch(err => {
       this.value = err;
       logEvent(
-        EventCategory.Warning,
+        EventCategory.Error,
         'core',
-        `Failed to resolve dependency ${this.name} due to error ${
-          (err as Error).name
-        }, anything makes use of that dependency will not be available`,
-        2
+        `Failed to resolve dependency ${this.name} due to error '${
+          err as Error
+        }', anything makes use of that dependency will not be available`,
+        1
       );
+      this.status = DependencyStatus.Failed;
+    });
+    this.value = await this.rawPromise;
+    // @ts-expect-error 2367 It's possible that this value was set in the async catch block, but
+    // typescript's compiler isn't detecting that
+    if (this.status === DependencyStatus.Failed) {
       // if an error is encountered during resolution, null is returned
-      return null;
+      return this.status;
     }
+    logEvent(
+      EventCategory.Info,
+      'core',
+      'Resolved dependency: ' + this.name,
+      2
+    );
+    this.status = DependencyStatus.Succeeded;
+    return this.status;
   }
 
   /**
@@ -432,34 +439,12 @@ export class Dependency {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fetchValue(): NonNullable<any> {
-    if (this.failed() || !this.resolutionAttempted()) {
+    if (this.status !== DependencyStatus.Succeeded) {
       throw new Error(
         `Attempt made to access dependency "${this.name}" that was not resolved`
       );
     }
 
     return this.value;
-  }
-
-  /**
-   * Check to see if resolution failed for this dependency.
-   */
-  failed(): Boolean {
-    if (this.value instanceof Error) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  /**
-   * Check to see if an attempt has been made to resolve this dependency
-   */
-  resolutionAttempted(): Boolean {
-    if (this.value !== null) {
-      return true;
-    } else {
-      return false;
-    }
   }
 }

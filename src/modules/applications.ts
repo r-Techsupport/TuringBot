@@ -1,6 +1,8 @@
 /**
  * @file
- * This file contains the 'applications' module definition.
+ * Modules:
+ * - {@link apply}
+ * - {@link application}
  */
 
 import {
@@ -52,7 +54,7 @@ function formatDate(date: Date): string {
 /**
  * Function to get the modal fields from the questions set in the module config
  */
-function getModalfields() {
+function getModalFields() {
   const modalFields = [];
   for (const question of apply.config.questions) {
     // Makes sure the question is valid
@@ -124,7 +126,7 @@ const apply = new util.RootModule(
     }
 
     // Defines the modal and its fields, then pushes it to the user
-    const modalFields = getModalfields();
+    const modalFields = getModalFields();
 
     if (modalFields.length === 0) {
       util.logEvent(
@@ -194,7 +196,7 @@ const apply = new util.RootModule(
 
     await submittedModal.reply({
       embeds: [
-        util.embed.successEmbed('Succesfully registered this application!'),
+        util.embed.successEmbed('Successfully registered this application!'),
       ],
       ephemeral: true,
     });
@@ -270,7 +272,8 @@ application.registerSubModule(
       }
 
       // Finally, send the payloads off to be paginated
-      await util.paginatePayloads(interaction, embeds, 60, false);
+      //await util.paginatePayloads(interaction, embeds, 60, false);
+      new util.PaginatedMessage(interaction, embeds, 5);
     }
   )
 );
@@ -352,7 +355,7 @@ application.registerSubModule(
         // Non-null assertion - The role has been verified as valid already
         await member.roles.add(role!);
       }
-      return util.embed.successEmbed('Application succesfully approved!');
+      return util.embed.successEmbed('Application successfully approved!');
     }
   )
 );

@@ -9,7 +9,7 @@ import {
 
 import {botConfig} from './config.js';
 import {EventCategory, logEvent} from './logger.js';
-import {RootModule, SubModule, modules} from './modules.js';
+import {DependencyStatus, RootModule, SubModule, modules} from './modules.js';
 import {client} from './api.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
@@ -209,13 +209,11 @@ async function executeModule(
   // no submodules, it's safe to execute the command and return
   // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
   for (const dep of module.dependencies) {
-    const depResult: unknown = await dep.resolve();
-    // .resolve() returns null if resolution failed
-    if (depResult === null) {
+    if (dep.status === DependencyStatus.Failed) {
       void replyToInteraction(interaction, {
         embeds: [
           embed.errorEmbed(
-            `Unable to execute command because dependency "${dep.name}" could not be resolved`
+            `Unable to execute command because resolution failed for dependency "${dep.name}"`
           ),
         ],
       });
@@ -331,7 +329,13 @@ async function initializeModule(module: RootModule): Promise<void> {
     }
     const jobResults = await Promise.all(dependencyJobs);
     // if resolution failed
-    if (jobResults.includes(null)) {
+    if (jobResults.includes(DependencyStatus.Failed)) {
+      logEvent(
+        EventCategory.Warning,
+        'core',
+        `Initialization of one of the dependencies for "${module.name}" did not complete successfully, this module will not be accessible`,
+        1
+      );
       return;
     }
     await module
@@ -341,7 +345,7 @@ async function initializeModule(module: RootModule): Promise<void> {
           EventCategory.Info,
           'core',
           `Initialized module: ${module.name}`,
-          3
+          2
         );
       })
       .catch(() => {

@@ -14,241 +14,244 @@ import {
 } from 'discord.js';
 import * as util from '../core/util.js';
 
-let currentPage = 1;
-let stoppedManually = false;
-let deletedManually = false;
-
-const prevButton: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('prevButton')
-  .setLabel('<')
-  .setStyle(ButtonStyle.Primary);
-
-const currentPageComponent: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('currentPage')
-  .setDisabled(true)
-  .setStyle(ButtonStyle.Secondary);
-
-const nextButton: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('nextButton')
-  .setLabel('>')
-  .setStyle(ButtonStyle.Primary);
-
-const stopButton: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('stopButton')
-  .setLabel('🛑')
-  .setStyle(ButtonStyle.Danger);
-
-const trashButton: ButtonBuilder = new ButtonBuilder()
-  .setCustomId('trashButton')
-  .setLabel('🗑️')
-  .setStyle(ButtonStyle.Danger);
-
 /**
- * Function to get the pagination control row with buttons set up properly
- * @param payloads The payloads used, used to make sure the arrows are disabled properly
- * @returns The configured action row
+ * A paginated message, implemented with a row of buttons that flip between various "pages"
  */
-function getRow(payloads: BaseMessageOptions[]): ActionRowBuilder {
-  // If the current page is the first one, disable the back button
-  let prevButtonDisabled = false;
-  if (currentPage === 1) {
-    prevButtonDisabled = true;
+export class PaginatedMessage {
+  /**
+   * A list of sendable messages, where each item is a "page"
+   */
+  private readonly payloads: BaseMessageOptions[];
+
+  /**
+   * A one based index indicating which page is currently being displayed
+   */
+  private currentPage = 1;
+
+  /**
+   * whether or not the stop button was pressed. If true,
+   * the pagination controls should be removed.
+   */
+  private stoppedManually = false;
+
+  /**
+   * Whether or not the message was deleted with the delete button. If true,
+   * the message no longer exists
+   */
+  private deletedManually = false;
+
+  /**
+   * If set to true, the response will be deleted after the timeout
+   */
+  private deleteAfter: boolean;
+
+  private readonly controlButtons = {
+    previous: new ButtonBuilder()
+      .setCustomId('prevButton')
+      .setLabel('<')
+      .setStyle(ButtonStyle.Primary),
+
+    currentPageDisplay: new ButtonBuilder()
+      .setCustomId('currentPage')
+      .setDisabled(true)
+      .setStyle(ButtonStyle.Secondary),
+
+    next: new ButtonBuilder()
+      .setCustomId('nextButton')
+      .setLabel('>')
+      .setStyle(ButtonStyle.Primary),
+
+    stop: new ButtonBuilder()
+      .setCustomId('stopButton')
+      .setLabel('🛑')
+      .setStyle(ButtonStyle.Danger),
+
+    trash: new ButtonBuilder()
+      .setCustomId('trashButton')
+      .setLabel('🗑️')
+      .setStyle(ButtonStyle.Danger),
+  };
+  /**
+   * Called when instantiating a new instance of {@link PaginatedMessage}, this will respond to
+   * the provided interaction with the first payload, and the pagination controls. The pagination controls
+   * will auto-hide after `time`
+   *
+   * **The interaction will be replied to when the constructor is called, no further work is necessary**
+   * @param interaction The interaction to reply to
+   * @param payloads An array of {@link BaseMessageOptions}, each one a "page" to flip between
+   * @param timeout After this time, pagination controls will auto-hide. Defaults to 60 seconds.
+   * @param deleteAfter If true, the response will be deleted after the timeout. Defaults to false.
+   */
+  constructor(
+    interaction: ChatInputCommandInteraction,
+    payloads: BaseMessageOptions[],
+    timeout = 60,
+    deleteAfter = false
+  ) {
+    this.payloads = payloads;
+    this.deleteAfter = deleteAfter;
+    // Initial reply, sends the first payload.
+    this.replyAndRegisterListener(interaction, timeout);
   }
 
-  // If the current page is the last one, disable the forward button
-  let nextButtonDisabled = false;
-  if (payloads.length === currentPage) {
-    nextButtonDisabled = true;
+  /**
+   * Create an action row containing all of the pagination buttons (left, right, back, etc),
+   * for the currently displayed payload.
+   * */
+  private generateControlRow() {
+    // If the current page is the first one, disable the back button
+    let prevButtonDisabled = false;
+    if (this.currentPage === 1) {
+      prevButtonDisabled = true;
+    }
+
+    // If the current page is the last one, disable the forward button
+    let nextButtonDisabled = false;
+    if (this.payloads.length === this.currentPage) {
+      nextButtonDisabled = true;
+    }
+
+    const row: ActionRowBuilder = new ActionRowBuilder().addComponents(
+      this.controlButtons.previous.setDisabled(prevButtonDisabled),
+      this.controlButtons.currentPageDisplay.setLabel(
+        `${this.currentPage}/${this.payloads.length}`
+      ),
+      this.controlButtons.next.setDisabled(nextButtonDisabled),
+      this.controlButtons.stop,
+      this.controlButtons.trash
+    );
+
+    return row;
   }
 
-  const row: ActionRowBuilder = new ActionRowBuilder().addComponents(
-    prevButton.setDisabled(prevButtonDisabled),
-    currentPageComponent.setLabel(`${currentPage}/${payloads.length}`),
-    nextButton.setDisabled(nextButtonDisabled),
-    stopButton,
-    trashButton
-  );
+  /**
+   * Take the {@link currentPage}, add a control row to it, and return the newly
+   * generated page, complete with controls
+   */
+  private renderCurrentPage(): BaseMessageOptions {
+    // Makes a structured clone (deep copy) of the payload so it can be modified without modifying the
+    // actual entry, since JavaScript works by reference not value.
+    const payload: BaseMessageOptions = structuredClone(
+      this.payloads[this.currentPage - 1]
+    );
+    const paginationRow: ActionRowBuilder<ButtonBuilder> =
+      this.generateControlRow() as ActionRowBuilder<ButtonBuilder>;
 
-  return row;
-}
+    // If there isn't a pagination row to append and the old components don't exist, set components to an empty array
+    // This is handled because the final .editReply() would keep the old components,
+    // the component attribute has to be set to edit the response properly.
+    // Returns early, no further component management is needed.
+    if (paginationRow === null && payload.components === undefined) {
+      payload.components = [];
+      return payload;
+    }
 
-/**
- * Function to get the payload with formatted action rows
- * @param payloads The payloads to be paginated
- * @param paginationRow The pagination control row
- * @returns The message payload to sent
- */
-function getPayload(
-  payloads: BaseMessageOptions[],
-  // Any has to be set here because typescript doesn't recognize ActionRowBuilder as a valid type for
-  // components, even though it is.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  paginationRow: any = null
-): BaseMessageOptions {
-  // Makes a structured clone (deep copy) of the payload so it can be modified without modifying the
-  // actual entry, since JavaScript works by reference not value.
-  const payload: BaseMessageOptions = structuredClone(
-    payloads[currentPage - 1]
-  );
+    // If it is null but there weren't existing action rows, something went wrong with pagination as this isn't supposed to happen.
+    if (paginationRow === null) {
+      // Returns an error in place of the actual payload
+      return {
+        embeds: [
+          util.embed.errorEmbed(
+            'Pagination error: The pagination row is null, payload preparation failed'
+          ),
+        ],
+      };
+    }
 
-  // If there isn't a pagination row to append and the old components don't exist, set components to an empty array
-  // This is handled because the final .editReply() would keep the old components,
-  // the component attribute has to be set to edit the response properly.
-  // Returns early, no further component management is needed.
-  if (paginationRow === null && payload.components === undefined) {
-    payload.components = [];
+    // If there ARE existing payload components, append the pagination control row.
+    if (payload.components !== undefined) {
+      payload.components.push(paginationRow);
+    }
+    // If there are NOT any existing payload components, set the attribute to the control row.
+    // Has to be done like this since the attribute is undefined prior to this assignment.
+    else {
+      payload.components = [paginationRow];
+    }
+
     return payload;
   }
 
-  // If it is null but there weren't existing action rows, something went wrong with pagination as this isn't supposed to happen.
-  if (paginationRow === null) {
-    // Returns an error in place of the actual payload
-    return {
-      embeds: [
-        util.embed.errorEmbed(
-          'Pagination error: The pagination row is null, payload preparation failed'
-        ),
-      ],
-    };
-  }
+  /**
+   * Respond to the provided interaction with the first page, and create an event listener
+   * @param interaction The interaction to reply to
+   * @param timeout The amount of time in seconds before the listener stops and the pagination buttons
+   * are removed.
+   * @param deleteAfter If set to true, the response will be deleted after the timout
+   */
+  private async replyAndRegisterListener(
+    interaction: ChatInputCommandInteraction,
+    timeout: number
+  ) {
+    let payload = this.renderCurrentPage();
+    let botResponse = await util.replyToInteraction(interaction, payload);
 
-  // If there ARE existing payload components, append the pagination control row.
-  if (payload.components !== undefined) {
-    payload.components.push(paginationRow);
-  }
-  // If there are NOT any existing payload components, set the attribute to the control row.
-  // Has to be done like this since the attribute is undefined prior to this assignment.
-  else {
-    payload.components = [paginationRow];
-  }
+    // Sets up a listener to listen for control button pushes
+    const continueButtonListener = botResponse.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      filter: i => interaction.user.id === i.user.id,
+      time: timeout * 1000,
+    });
 
-  return payload;
-}
+    // Executed every time a button is pressed
+    continueButtonListener.on(
+      'collect',
+      async (buttonInteraction: ButtonInteraction) => {
+        if (buttonInteraction.component instanceof ButtonComponent) {
+          switch (buttonInteraction.component.customId) {
+            case 'prevButton':
+              await buttonInteraction.deferUpdate();
+              this.currentPage--;
 
-/**
- * Function to paginate a set of payloads that times out after a given time.
- * @param interaction The interaction to respond to
- * @param payloads The array of message payloads to paginate
- * @param time The time in seconds to time out after
- * @param deleteAfter Whether to delete the message after it times out
- */
-async function paginate(
-  interaction: ChatInputCommandInteraction,
-  payloads: BaseMessageOptions[],
-  time: number,
-  deleteAfter: boolean
-) {
-  // Initial reply, sends the first payload.
-  let payload = getPayload(payloads, getRow(payloads));
-  let botResponse = await util.replyToInteraction(interaction, payload);
+              payload = this.renderCurrentPage();
+              botResponse = await interaction.editReply(payload);
 
-  // Sets up a listener to listen for control button pushes
-  const continueButtonListener = botResponse.createMessageComponentCollector({
-    componentType: ComponentType.Button,
-    filter: i => interaction.user.id === i.user.id,
-    time: time * 1000,
-  });
+              break;
 
-  // Executed every time a button is pressed
-  continueButtonListener.on(
-    'collect',
-    async (buttonInteraction: ButtonInteraction) => {
-      if (buttonInteraction.component instanceof ButtonComponent) {
-        switch (buttonInteraction.component.customId) {
-          case 'prevButton':
-            await buttonInteraction.deferUpdate();
-            currentPage--;
+            case 'nextButton':
+              await buttonInteraction.deferUpdate();
+              this.currentPage++;
 
-            payload = getPayload(payloads, getRow(payloads));
-            botResponse = await interaction.editReply(payload);
+              payload = this.renderCurrentPage();
+              botResponse = await interaction.editReply(payload);
 
-            break;
+              break;
 
-          case 'nextButton':
-            await buttonInteraction.deferUpdate();
-            currentPage++;
+            case 'stopButton':
+              await buttonInteraction.deferUpdate();
 
-            payload = getPayload(payloads, getRow(payloads));
-            botResponse = await interaction.editReply(payload);
+              this.stoppedManually = true;
+              // buttons are removed when the listener ends
+              continueButtonListener.stop();
+              return;
 
-            break;
+            case 'trashButton':
+              await buttonInteraction.deferUpdate();
 
-          case 'stopButton':
-            await buttonInteraction.deferUpdate();
+              this.deletedManually = true;
+              await interaction.deleteReply();
 
-            stoppedManually = true;
-            continueButtonListener.stop();
-            return;
-
-          case 'trashButton':
-            await buttonInteraction.deferUpdate();
-
-            deletedManually = true;
-            await interaction.deleteReply();
-
-            continueButtonListener.stop();
-            return;
+              continueButtonListener.stop();
+              return;
+          }
         }
       }
-    }
-  );
+    );
 
-  // Executed when the collector is stopped or times out.
-  continueButtonListener.on('end', async () => {
-    // If the interaction is supposed to be deleted afterwards and wasn't stopped manually, delete it
-    if (deleteAfter && !stoppedManually) {
-      await interaction.deleteReply();
-    }
-    // Otherwise just remove the buttons
-    else if (!deletedManually) {
-      const payload = getPayload(payloads);
-      await interaction.editReply(payload);
-    }
-    // Resets the variables for further uses
-    currentPage = 1;
-    stoppedManually = false;
-    deletedManually = false;
-  });
-}
-
-/**
- * Function to paginate an array of message payloads with a variable timeout
- * @param interaction The interaction to respond to
- * @param payloads An array of message payloads to paginate
- * @param time The time in seconds to time out after
- * @param deleteAfter Whether to delete the message after it times out
- */
-export async function paginatePayloads(
-  interaction: ChatInputCommandInteraction,
-  payloads: BaseMessageOptions[],
-  time: number,
-  deleteAfter: boolean
-): Promise<void> {
-  if (payloads.length === 0) {
-    await util.replyToInteraction(interaction, {
-      embeds: [
-        util.embed.errorEmbed(
-          'No embeds were supplied to the pagination function!'
-        ),
-      ],
+    // Executed when the collector is stopped or times out.
+    continueButtonListener.on('end', async () => {
+      // If the interaction is supposed to be deleted afterwards and wasn't stopped manually, delete it
+      if (this.deleteAfter && !this.stoppedManually) {
+        await interaction.deleteReply();
+      }
+      // Otherwise just remove the buttons
+      else if (!this.deletedManually) {
+        const payload = this.payloads[this.currentPage - 1];
+        // editreply won't remove components unless they're explicitly redefined in the reply
+        if (payload.components === undefined) {
+          payload.components = [];
+        }
+        await interaction.editReply(payload);
+      }
     });
-    return;
   }
-
-  // Makes sure that the 5x5 grid isn't filled so the pagination controls can be added
-  for (const payload of payloads) {
-    if (payload.components !== undefined && payload.components.length > 5) {
-      await util.replyToInteraction(interaction, {
-        embeds: [
-          util.embed.errorEmbed(
-            'A payload has more than 5 action rows, unable to paginate!'
-          ),
-        ],
-      });
-      return;
-    }
-  }
-
-  await paginate(interaction, payloads, time, deleteAfter);
-  return;
 }

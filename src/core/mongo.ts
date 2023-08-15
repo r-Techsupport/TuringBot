@@ -7,6 +7,7 @@ import {botConfig} from './config.js';
 import {Dependency} from './modules.js';
 
 export const mongo = new Dependency('MongoDB', async () => {
+  throw new Error('test');
   const mongoConfig = botConfig.mongodb;
   // https://www.mongodb.com/docs/manual/reference/connection-string/
   const connectionString =
