@@ -72,7 +72,7 @@ googleModule.registerSubModule(
         payloads.push({embeds: [embed]});
       }
 
-      await util.paginatePayloads(interaction, payloads, 60, false);
+      new util.PaginatedMessage(interaction, payloads);
     }
   )
 );
@@ -124,7 +124,7 @@ googleModule.registerSubModule(
         payloads.push({content: result.link!});
       }
 
-      await util.paginatePayloads(interaction, payloads, 60, false);
+      new util.PaginatedMessage(interaction, payloads);
     }
   )
 );
@@ -170,7 +170,7 @@ const youtube = new util.RootModule(
       payloads.push({content: `https://youtu.be/${result.id!.videoId}`});
     }
 
-    await util.paginatePayloads(interaction, payloads, 60, false);
+    new util.PaginatedMessage(interaction, payloads);
   }
 );
 
