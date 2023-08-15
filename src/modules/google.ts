@@ -1,5 +1,9 @@
 /**
- * @file This file contains the 'google' and 'youtube' module definitions
+ * @file
+ * Modules:
+ *  - {@link googleModule}
+ *  - Submodules: Search, image
+ *  - {@link youtube}
  */
 
 import {APIEmbed, BaseMessageOptions, Colors} from 'discord.js';
@@ -13,7 +17,7 @@ const youtubeSearch = google.youtube('v3'); // 10k/day limit
 const GOOGLE_ICON_URL =
   'https://cdn.icon-icons.com/icons2/673/PNG/512/Google_icon-icons.com_60497.png';
 
-/** The root google command definition */
+/** The root Google module definition */
 const googleModule = new util.RootModule(
   'google',
   'Manages google commands',
@@ -41,6 +45,13 @@ googleModule.registerSubModule(
         [undefined, ''].includes(API_KEY) ||
         [undefined, ''].includes(CSE_ID)
       ) {
+        util.logEvent(
+          util.EventCategory.Warning,
+          'google',
+          'Config error: The API key / CSE id is not set!',
+          1
+        );
+
         return util.embed.errorEmbed(
           'Config error: The API key / CSE id is not set!'
         );
@@ -99,6 +110,12 @@ googleModule.registerSubModule(
         [undefined, ''].includes(API_KEY) ||
         [undefined, ''].includes(CSE_ID)
       ) {
+        util.logEvent(
+          util.EventCategory.Warning,
+          'google',
+          'Config error: The API key / CSE id is not set!',
+          1
+        );
         return util.embed.errorEmbed(
           'Config error: The API key / CSE id is not set!'
         );
@@ -129,7 +146,7 @@ googleModule.registerSubModule(
   )
 );
 
-/** The root Google module definition */
+/** The root Youtube module definition */
 const youtube = new util.RootModule(
   'youtube',
   'Searches youtube videos based on a query',
@@ -146,6 +163,12 @@ const youtube = new util.RootModule(
     const API_KEY: string | undefined = googleModule.config.ApiKey;
 
     if ([undefined, ''].includes(API_KEY)) {
+      util.logEvent(
+        util.EventCategory.Warning,
+        'google',
+        'Config error: The API key is not set!',
+        1
+      );
       return util.embed.errorEmbed(
         'Config error: The Google API key is not set!'
       );
