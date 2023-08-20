@@ -55,6 +55,82 @@
 
   // The key for each module should match the one specified in the root module initialization
   // if the `enabled` key is missing, the extension will be disabled by default, and a warning issued
+  /*
+  Here's an example permissions config and boilerplate:
+  You can use this by setting the `permissions` key of each extension
+  to an object like this. It's not required for any of these keys to be set.
+  ```
+  {
+    // and whatever else a full perms list entails
+    "requiredPerms": ["kick", "ban", "timeout", "manage_roles", "administrator"],
+    // Users takes the highest precedence, then role, then channel, than category
+    // Denied takes precedence over allowed
+    // if nothing is set, than all is enabled by default.
+    // if there's an item in an allowlist, than anything that
+    // doesn't have meet that requirement is denied
+    // if there's an item in a denylist, than 
+    // anything that doesn't match the list is still allowed
+    // if a key is set for an allowlist, than it should not be set
+    // for the deny list, and vice versa
+    "allowed": {
+        // list of user IDs
+        "users": [],
+        // list of role IDs (or names? needs to be discussed)
+        "roles": [],
+        // list of channel IDs
+        "channels": [],
+        // a list of category IDs
+        "categories": [],
+    },
+    "denied": {
+        // a list of user IDs
+        "users": [],
+        // a list of role IDs
+        "roles": [],
+        // a list of channel IDs
+        "channels": [],
+        // a list of category IDs.
+        "categories": [],
+    }
+    ```
+
+    Subcommand permissions can be set using the below structure:
+    ```
+    {
+    // example module config
+    "enabled": true,
+    // permissions for this module
+    "permissions": {
+        "allowed": {
+            "channels": ["111111111"]
+        },
+        "submodulePermissions": {
+            // ideally, module permissions should be validated at every layer
+            "foo": {
+                "allowed": {
+                    "roles": ["1231234"]
+                },
+                "denied": {
+                    "users": ["92752544144572416"]
+                }
+            },
+            // 3 layers deep 
+            "submodulePermissions": {
+                "bar": {
+                    "subModulePermissions": {
+                        "bat": {
+                            "allowed": {
+                                "categories": ["1111"]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+}
+  */
   "modules": {
     "logging": {
       "enabled": true,
