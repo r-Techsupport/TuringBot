@@ -382,8 +382,7 @@ function checkContextBlockForInteraction(
   // user validation
   if (contextBlock.users !== undefined) {
     for (const user of contextBlock.users) {
-      // if the user matches, add the key to the final 'what caught the filter'
-      // block
+      // if the user matches, add the key to the final 'what caught the filter' block
       if (validator.interactionByUser(user)) {
         matchingBlockParts.users = contextBlock.users;
       }
