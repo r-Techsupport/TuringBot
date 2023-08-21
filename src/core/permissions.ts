@@ -173,11 +173,11 @@ export function checkInteractionAgainstPermissionConfig(
   interaction: ChatInputCommandInteraction,
   config: PermissionConfig
 ): string[] {
+  /** A list of reasons that the interaction should not proceed. It may include reasons like "user cannot ban members", or "this category was blocked". */
   const reasons: string[] = [];
   const validator = new SlashCommandPermissionValidator(interaction);
 
   // check to see if the author of the interaction has the perms listed in requiredPerms
-  // first item in nested array is
   const missingPerms: string[] = [];
   // check to see if the user is missing any of the defined perms, if so, add them to the array
   if (config.requiredPerms !== undefined) {
@@ -196,7 +196,7 @@ export function checkInteractionAgainstPermissionConfig(
     // reason a user couldn't run the thing is displayed
   }
 
-  // CASE 1: if neither allowlist or denylist are defined, allow everything (there's no reasons to add)
+  // if neither allowlist or denylist are defined, allow everything (there's no reasons to add)
   // language clarification: the ?? {} is just a cheeky shortcut to avoid needing to have
   // a bunch of undefined check boilerplate
   if (
@@ -206,10 +206,18 @@ export function checkInteractionAgainstPermissionConfig(
     return reasons;
   }
   // these lists get pushed the unformatted issues, for formatting later
-  /** Reasons that the interaction does not meet the required x */
-  /** Reasons that the interaction does not require y */
-  const notAllowedReasons: [string, string][] = [];
-  const denyReasons: [string, string][] = [];
+  /**
+   * If an allowlist setting was defined in the config, and the interaction does not meet those requirements,
+   * an item will be added here. The first item is the category the check failed on, EG "users" or "roles",
+   * and the second item is the list of things that *are* allowed, EG `1234545234, 489759837459`.
+   */
+  const unformattedAllowReasons: [string, string][] = [];
+  /**
+   * If a denylist setting was defined in the config, and the interaction should be denied because it matches
+   * the setting made, an item will be added here. The first item is the category that matched the setting, eg
+   * "users", or "roles", and the second item is a list of things that are denied, eg `232342342, 3245234134`.
+   **/
+  const unformattedDenyReasons: [string, string][] = [];
 
   // check for matches for the allow and denylists, then "mesh" the two based on priority
   /** If a whitelist is set, this is a list of things that do not fit the whitelist */
@@ -234,18 +242,22 @@ export function checkInteractionAgainstPermissionConfig(
   //  stage one: check the user setting. If the user setting is set,
   // it overrides any other settings, because it's the highest priority setting
   // if a value is defined in the match list, it means that that category was a match
-  if (allowed !== true && allowMatches.users) {
+  if (allowMatches.users) {
     // the highest level, this person is definitely allowed to do the thing
     allowed = true;
   }
-  // if the thing was not a match, then users won't be defined, and the interaction should not proceed
+
+  // if a decision was not already made regarding whether or not the interaction should proceed,
+  // and the allowedMatches.users filter did not match the author of the interaction,
+  // but a config key was defined, then add a reason, because the user is not one of a few
+  // allowed users specified in the config.
   if (
     allowed !== true &&
     allowMatches.users === undefined &&
     config.allowed?.users !== undefined
   ) {
     allowed = false;
-    notAllowedReasons.push([
+    unformattedAllowReasons.push([
       'users',
       config.allowed.users.map(user => `<@!${user}>`).join(', '),
     ]);
@@ -253,7 +265,7 @@ export function checkInteractionAgainstPermissionConfig(
 
   if (allowed !== true && denyMatches.users) {
     allowed = false;
-    denyReasons.push([
+    unformattedDenyReasons.push([
       'users',
       denyMatches.users.map(user => `<@!${user}>`).join(', '),
     ]);
@@ -272,7 +284,7 @@ export function checkInteractionAgainstPermissionConfig(
     config.allowed?.roles !== undefined
   ) {
     allowed = false;
-    notAllowedReasons.push([
+    unformattedAllowReasons.push([
       'roles',
       config.allowed.roles.map(role => `<@&${role}>`).join(', '),
     ]);
@@ -280,13 +292,13 @@ export function checkInteractionAgainstPermissionConfig(
   // then check to see if the interaction matches the filter set by the denylist
   if (allowed !== true && denyMatches.roles) {
     allowed = false;
-    denyReasons.push([
+    unformattedDenyReasons.push([
       'roles',
       denyMatches.roles.map(role => `<@&${role}>`).join(', '),
     ]);
   }
 
-  // stage 3: same as above, for channels
+  // stage three: same as above, for channels
   if (allowed !== true && allowMatches.channels) {
     allowed = true;
   }
@@ -296,7 +308,7 @@ export function checkInteractionAgainstPermissionConfig(
     allowMatches.channels === undefined &&
     config.allowed?.channels !== undefined
   ) {
-    notAllowedReasons.push([
+    unformattedAllowReasons.push([
       'channels',
       config.allowed.channels.map(channel => `<#${channel}>`).join(', '),
     ]);
@@ -304,13 +316,13 @@ export function checkInteractionAgainstPermissionConfig(
 
   if (allowed !== true && denyMatches.channels) {
     allowed = false;
-    denyReasons.push([
+    unformattedDenyReasons.push([
       'channels',
       denyMatches.channels.map(channel => `<#${channel}>`).join(', '),
     ]);
   }
 
-  // stage 4, same as above for categories
+  // stage four, same as above for categories
   if (allowed !== true && allowMatches.categories) {
     allowed = true;
   }
@@ -320,7 +332,7 @@ export function checkInteractionAgainstPermissionConfig(
     allowMatches.categories === undefined &&
     config.allowed?.categories !== undefined
   ) {
-    notAllowedReasons.push([
+    unformattedAllowReasons.push([
       'categories',
       config.allowed.categories.map(category => `<#${category}>`).join(', '),
     ]);
@@ -328,17 +340,20 @@ export function checkInteractionAgainstPermissionConfig(
 
   if (allowed !== true && denyMatches.categories) {
     allowed = false;
-    denyReasons.push(['categories', denyMatches.categories.join(', ')]);
+    unformattedDenyReasons.push([
+      'categories',
+      denyMatches.categories.join(', '),
+    ]);
   }
 
   // format the denyReasons into full strings, then add them to the returned list of reasons
-  for (const entry of denyReasons) {
+  for (const entry of unformattedDenyReasons) {
     reasons.push(
       `Execution of command is disabled for the following ${entry[0]}: *${entry[1]}*`
     );
   }
   // same for blocks caused by the allowlist
-  for (const entry of notAllowedReasons) {
+  for (const entry of unformattedAllowReasons) {
     reasons.push(`Allowed ${entry[0]}: *${entry[1]}*`);
   }
   // return a list of reasons
@@ -365,7 +380,6 @@ function checkContextBlockForInteraction(
    */
   const matchingBlockParts: ContextBlock = {};
   // user validation
-
   if (contextBlock.users !== undefined) {
     for (const user of contextBlock.users) {
       // if the user matches, add the key to the final 'what caught the filter'
