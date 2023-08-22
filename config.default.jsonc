@@ -63,6 +63,7 @@
   "permissions": {
     // a list of all possible permission restrictions
     "requiredPerms": ["kick", "ban", "timeout", "manage_roles", "administrator"],
+    // **ALL IDs MUST BE A STRING**
     "allowed": {
         // list of user IDs
         "users": [],
