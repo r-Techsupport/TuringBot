@@ -114,30 +114,27 @@ function listenForSlashCommands() {
       );
       // it's also possible to specify permissions per-submodule, and per submodule group
       // checking 2 layers deep, eg `/foo bar`
-      if (commandPath.length === 2) {
+      if (resolutionResult.modulePath.length === 2) {
         const submodulePermissionResults =
           checkInteractionAgainstPermissionConfig(
             interaction,
-            permissionConfig.submodulePermissions[commandPath[1]]
+            permissionConfig.submodulePermissions[
+              resolutionResult.modulePath[1]
+            ] ?? {}
           );
-        deniedReasons = deniedReasons.concat(
-          deniedReasons,
-          submodulePermissionResults
-        );
+        deniedReasons = deniedReasons.concat(submodulePermissionResults);
       }
 
       // 3 layers deep, EG `/foo bar bat`
-      if (commandPath.length === 3) {
+      if (resolutionResult.modulePath.length === 3) {
         const subSubmodulePermissionResults =
           checkInteractionAgainstPermissionConfig(
             interaction,
-            permissionConfig.submodulePermissions[commandPath[1]]
-              .submodulePermissions[commandPath[2]]
+            permissionConfig.submodulePermissions[
+              resolutionResult.modulePath[1]
+            ].submodulePermissions[resolutionResult.modulePath[2]]
           );
-        deniedReasons = deniedReasons.concat(
-          deniedReasons,
-          subSubmodulePermissionResults
-        );
+        deniedReasons = deniedReasons.concat(subSubmodulePermissionResults);
       }
 
       if (deniedReasons.length > 0) {

@@ -180,11 +180,9 @@ export function checkInteractionAgainstPermissionConfig(
   // check to see if the author of the interaction has the perms listed in requiredPerms
   const missingPerms: string[] = [];
   // check to see if the user is missing any of the defined perms, if so, add them to the array
-  if (config.requiredPerms !== undefined) {
-    for (const permission of config.requiredPerms) {
-      if (!validator.userHasPerm(permission)) {
-        missingPerms.push(permission);
-      }
+  for (const permission of config.requiredPerms ?? []) {
+    if (!validator.userHasPerm(permission)) {
+      missingPerms.push(permission);
     }
   }
   // format the missing perms into a nice string, then add them to the returned reasons list
