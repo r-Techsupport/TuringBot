@@ -8,8 +8,6 @@ import osutils from 'node-os-utils';
 import * as util from '../../core/util.js';
 import {readFileSync} from 'node:fs';
 
-import path from 'path';
-
 /** Gets the event loop tick latency, returns an array of the latest 5 values */
 async function getTickLatency() {
   return new Promise<number[]>(resolve => {

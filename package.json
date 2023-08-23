@@ -38,6 +38,5 @@
     "jsdoc": "^4.0.2",
     "prettier": "^3.0.0",
     "typescript": "~4.7.0"
-  },
-  "description": "v2023.08.23 - dc4baee: 'arc smells like socks' -Cpt-Dingus"
+  }
 }
