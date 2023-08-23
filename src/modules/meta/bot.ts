@@ -6,7 +6,6 @@ import {Colors, EmbedBuilder, EmbedField} from 'discord.js';
 import process from 'node:process';
 import osutils from 'node-os-utils';
 import * as util from '../../core/util.js';
-import {readFileSync} from 'node:fs';
 
 /** Gets the event loop tick latency, returns an array of the latest 5 values */
 async function getTickLatency() {
@@ -55,18 +54,10 @@ bot.registerSubModule(
     'Prints information about the bot',
     [],
     async (_, interaction) => {
-      // Read the package.json file
-      const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'));
-      // Get the description
-      const description = packageJson.description;
-
       const embed: EmbedBuilder = new EmbedBuilder()
         .setColor(Colors.Blurple)
         .setTitle(util.client.user!.username)
-        .setThumbnail(util.client.user!.displayAvatarURL())
-        .setFooter({
-          text: description,
-        });
+        .setThumbnail(util.client.user!.displayAvatarURL());
 
       // Gets the Average tick delay
       const tickDelay = await getTickLatency();
