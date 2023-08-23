@@ -29,7 +29,7 @@ The cluster is now created and ready for use with Turingbot.
 
 ![image](../assets/mongodb_atlas/MongoDB_Asset-5.png)
 
-2) Click on `Shell`, the third step now contains all necessary information to proceed. Copy the value in the quotation marks exclkuding the protocol (`mongodb+src://`)
+2) Click on `Shell`, the third step now contains all necessary information to proceed. Copy the value in the quotation marks exclkuding the protocol (`mongodb+srv://`)
 
 ![image](../assets/mongodb_atlas/MongoDB_Asset-6.png)
 
