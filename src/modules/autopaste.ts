@@ -1,7 +1,7 @@
 /**
  * @file This file contains the necessary information for autopasting messages
  */
-import {Colors, EmbedBuilder, Events, Message} from 'discord.js';
+import {Colors, EmbedBuilder, Events, Message, Role} from 'discord.js';
 import * as util from '../core/util.js';
 import {request} from 'undici';
 
@@ -37,6 +37,8 @@ autopaste.onInitialize(async () => {
     return;
   }
 
+  const immuneRoles: string[] = autopaste.config.immuneRoleIds;
+
   const headers = {
     'Linx-Expiry': '1800',
     'Linx-Randomize': 'yes',
@@ -49,6 +51,18 @@ autopaste.onInitialize(async () => {
       return;
     }
 
+    // Makes sure the author doesn't have any immune roles
+    for (const roleIds of immuneRoles) {
+      // The role is found from the cache and only THEN is ITs id checked, done to make sure you
+      // can't just put a role name in the list and then create a new role with the same name
+      const role: Role | undefined = message.guild!.roles.cache.find(
+        role => role.id === roleIds
+      );
+
+      if (role !== undefined && message.member!.roles.cache.has(role.id)) {
+        return;
+      }
+    }
     const content: string = message.content;
 
     // Pastes the message contents
