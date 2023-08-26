@@ -1,7 +1,7 @@
 /**
  * @file
  * Modules:
- *  - {@link factoid} 
+ *  - {@link factoid}
  *  - Submodules: Get, Remember, Forget, Json, {@link trigger} -> (Add, Remove)
  */
 import {ObjectId} from 'mongodb';

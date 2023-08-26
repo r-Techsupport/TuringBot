@@ -3,7 +3,7 @@
  * Modules:
  *  - {@link notes}
  *  - Submodules: Add, Clear, Get
- * 
+ *
  *  - {@link whois}
  */
 
