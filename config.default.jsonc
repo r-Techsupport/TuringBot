@@ -106,6 +106,14 @@
   },
   "bot": {
     "enabled": true
+  },
+  "autopaste": {
+    "enabled": true,
+    // Make sure the ids are all strings, not numbers
+    "immuneRoleIds": [],
+    "maxLength": 100,
+    "pasteFooterContent": "",
+    "pasteApi": ""
   }
   }
 }
