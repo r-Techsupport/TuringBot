@@ -1,19 +1,21 @@
 /**
  * @file
- * This file contains the 'conch' module definition.
+ * Modules:
+ *  - {@link bot} - Info
  */
+
 import {Colors, EmbedBuilder, EmbedField} from 'discord.js';
 import process from 'node:process';
 import osutils from 'node-os-utils';
 import * as util from '../../core/util.js';
 
-/** Gets the event loop tick latency, returns an array of the latest 5 values */
-async function getTickLatency() {
+/** Function that returns an array of the latest 5 ticks' latencies */
+async function getTickLatency(): Promise<number[]> {
   return new Promise<number[]>(resolve => {
     let iteration = 0;
     const tickDelay: number[] = [];
 
-    /** Function to push the current event loop tick time to tickDelay, resolve once the limit is reached */
+    /** Function to push the tick latency to tickDelay, resolve on the fifth tick */
     function measureIteration() {
       // Unix timestamp of start in ms
       const startRaw = process.hrtime();
@@ -25,7 +27,6 @@ async function getTickLatency() {
         const lag = lagTime[0] * 1_000 + lagTime[1] / 1_000_000;
 
         tickDelay.push(lag - start);
-
         iteration++;
 
         if (iteration < 5) {
@@ -43,7 +44,7 @@ async function getTickLatency() {
 /** The root bot command definition */
 const bot = new util.RootModule(
   'bot',
-  'Prints information about the bot',
+  'Bot info and management command group',
   [],
   []
 );

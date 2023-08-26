@@ -103,6 +103,9 @@
   // API key is shared with google
   "youtube": {
     "enabled": true
+  },
+  "bot": {
+    "enabled": true
   }
   }
 }
