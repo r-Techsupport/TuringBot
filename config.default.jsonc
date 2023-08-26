@@ -149,6 +149,9 @@
   "youtube": {
     "enabled": true
   },
+  "bot": {
+    "enabled": true
+  },
   "autopaste": {
     "enabled": true,
     // Make sure the ids are all strings, not numbers
