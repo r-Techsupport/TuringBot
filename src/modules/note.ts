@@ -1,6 +1,10 @@
 /**
  * @file
- * This file contains the 'notes' and 'whois' module definition.
+ * Modules:
+ *  - {@link notes}
+ *  - Submodules: Add, Clear, Get
+ * 
+ *  - {@link whois}
  */
 
 import type {Collection, Db} from 'mongodb';

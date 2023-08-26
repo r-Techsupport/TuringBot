@@ -1,7 +1,8 @@
 /**
  * @file
  * Modules:
- *  - {@link bot} - Info
+ *  - {@link bot}
+ *  - Submodules: Info
  */
 
 import {Colors, EmbedBuilder, EmbedField} from 'discord.js';

@@ -2,7 +2,9 @@
  * @file
  * Modules:
  * - {@link apply}
+ *
  * - {@link application}
+ * - Submodules: Get, Approve, Deny, Purge
  */
 
 import {

@@ -1,6 +1,8 @@
 /**
  * @file
- * This file contains the `factoid` module definition.
+ * Modules:
+ *  - {@link factoid} 
+ *  - Submodules: Get, Remember, Forget, Json, {@link trigger} -> (Add, Remove)
  */
 import {ObjectId} from 'mongodb';
 import type {Collection} from 'mongodb';

@@ -1,7 +1,9 @@
-/*
-This module provides discord logging, and is intended to log messages to a collection of logging channels. Because this requires
-a comparatively very high level amount of processing compared to other tasks, this code should be *very* optimized
-*/
+/**
+ * @file
+ * Modules:
+ *  - {@link channelLogging}
+ *  - Submodules: Populate
+ */
 import {
   TextChannel,
   CategoryChannel,

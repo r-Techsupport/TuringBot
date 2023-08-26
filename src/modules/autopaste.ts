@@ -1,6 +1,9 @@
 /**
- * @file This file contains the necessary information for autopasting messages
+ * @file
+ * Modules:
+ *  - {@link autopaste}
  */
+
 import {Colors, EmbedBuilder, Events, Message, Role} from 'discord.js';
 import * as util from '../core/util.js';
 import {request} from 'undici';

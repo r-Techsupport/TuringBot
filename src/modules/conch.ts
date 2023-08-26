@@ -1,6 +1,7 @@
 /**
  * @file
- * This file contains the 'conch' module definition.
+ * Modules:
+ *  - {@link conch}
  */
 
 import {Colors, EmbedBuilder} from 'discord.js';
@@ -65,12 +66,11 @@ const conch = new util.RootModule(
       .find(arg => arg.name === 'question')!
       .value!.toString();
 
-    const embed: EmbedBuilder = new EmbedBuilder();
-
-    embed.setTitle(formatQuestion(question));
-    embed.setDescription(getRandomReply());
-    embed.setColor(Colors.Blurple);
-    embed.setThumbnail(THUMBNAIL_URL);
+    const embed: EmbedBuilder = new EmbedBuilder()
+      .setTitle(formatQuestion(question))
+      .setDescription(getRandomReply())
+      .setColor(Colors.Blurple)
+      .setThumbnail(THUMBNAIL_URL);
 
     await util.replyToInteraction(interaction, {embeds: [embed]});
   }
