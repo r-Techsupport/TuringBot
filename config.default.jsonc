@@ -55,6 +55,51 @@
 
   // The key for each module should match the one specified in the root module initialization
   // if the `enabled` key is missing, the extension will be disabled by default, and a warning issued
+  /*
+  Here's an example permissions config and boilerplate:
+  You can use this by setting the `permissions` key of each extension
+  to an object like this. It's not required for any of these keys to be set.
+  ```
+  "permissions": {
+    // a list of all possible permission restrictions
+    "requiredPerms": ["kick", "ban", "timeout", "manage_roles", "administrator"],
+    // **ALL IDs MUST BE STRINGS (not numbers)**
+    "allowed": {
+        // list of user IDs
+        "users": [],
+        // list of role IDs (or names? needs to be discussed)
+        "roles": [],
+        // list of channel IDs
+        "channels": [],
+        // a list of category IDs
+        "categories": [],
+    },
+    "denied": {
+        // a list of user IDs
+        "users": [],
+        // a list of role IDs
+        "roles": [],
+        // a list of channel IDs
+        "channels": [],
+        // a list of category IDs.
+        "categories": [],
+    }
+    // if you also want to restrict permissions per submodule, it can be done as below
+    "submodulePermissions": {
+      // each key in this object is the name of a submodule, so for a command like `/factoid all`, 
+      // you could restrict it with a key named `"all"`.
+      "<submodule_name>": {
+        // the same structure can be nested
+        "requiredPerms": [],
+        // you can also nest submodulePermissions to restrict a command 3 layers deep, like "/factoid all html"
+        "submodulePermissions: {
+          "<submodule_name>": {}
+        }
+      }
+    }
+  }
+    ```
+  */
   "modules": {
     "logging": {
       "enabled": true,

@@ -19,6 +19,7 @@ import {
   registerSlashCommandSet,
   replyToInteraction,
 } from './slash_commands.js';
+import {checkInteractionAgainstPermissionConfig} from './permissions.js';
 
 // load the config from config.default.jsonc
 botConfig.readConfigFromFileSystem();
@@ -83,7 +84,7 @@ async function importModulesFromFile(path: string): Promise<void> {
  * Start an event listener that executes received slash commands
  * https://discordjs.guide/creating-your-bot/command-handling.html#receiving-command-interactions */
 function listenForSlashCommands() {
-  client.on(Events.InteractionCreate, interaction => {
+  client.on(Events.InteractionCreate, async interaction => {
     if (!interaction.isChatInputCommand()) {
       return;
     }
@@ -101,6 +102,52 @@ function listenForSlashCommands() {
     }
     const resolutionResult = resolveModule(commandPath);
     if (resolutionResult.foundModule !== null) {
+      // validate permissions
+      // if a permission config was not defined, treat it as empty
+      const permissionConfig =
+        resolutionResult.foundModule.config.permissions ?? {};
+      // this returns a list of reasons not to run the command, so if the list is empty,
+      // continue with execution
+      let deniedReasons: string[] = checkInteractionAgainstPermissionConfig(
+        interaction,
+        permissionConfig
+      );
+      // it's also possible to specify permissions per-submodule, and per submodule group
+      // checking 2 layers deep, eg `/foo bar`
+      if (resolutionResult.modulePath.length === 2) {
+        const submodulePermissionResults =
+          checkInteractionAgainstPermissionConfig(
+            interaction,
+            permissionConfig.submodulePermissions[
+              resolutionResult.modulePath[1]
+            ] ?? {}
+          );
+        deniedReasons = deniedReasons.concat(submodulePermissionResults);
+      }
+
+      // 3 layers deep, EG `/foo bar bat`
+      if (resolutionResult.modulePath.length === 3) {
+        const subSubmodulePermissionResults =
+          checkInteractionAgainstPermissionConfig(
+            interaction,
+            permissionConfig.submodulePermissions[
+              resolutionResult.modulePath[1]
+            ].submodulePermissions[resolutionResult.modulePath[2]]
+          );
+        deniedReasons = deniedReasons.concat(subSubmodulePermissionResults);
+      }
+
+      if (deniedReasons.length > 0) {
+        await replyToInteraction(interaction, {
+          embeds: [
+            embed.errorEmbed(
+              'You are unable to execute this command for the following reasons:\n- ' +
+                deniedReasons.join('\n- ')
+            ),
+          ],
+        });
+        return;
+      }
       executeModule(resolutionResult.foundModule, interaction);
     }
   });
@@ -220,6 +267,8 @@ async function executeModule(
       return;
     }
   }
+
+  // next figure out where the correct options are located, to pass to the module
   // could be considered for minor optimizations
   let options: CommandInteractionOption[];
   // though a bit odd, the options are actually located at a different place in the object
@@ -230,6 +279,8 @@ async function executeModule(
   } else {
     options = Array.from(interaction.options.data);
   }
+
+  // execute the command
   // There may be possible minor perf/mem overhead from calling Array.from to un-readonly the array,
   module
     .executeCommand(Array.from(options), interaction)

@@ -117,7 +117,6 @@ I can't think of a great way to handle permissions for subcommands. I thought of
             }
         }
     }
-
 }
 ```
 
