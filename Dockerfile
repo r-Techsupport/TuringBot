@@ -11,7 +11,7 @@ COPY package*.json .
 RUN npm install --no-audit --omit=dev
 
 # Copy code over
-COPY config.jsonc ./
+# COPY config.jsonc ./
 COPY Makefile ./
 COPY target/ ./target/
 

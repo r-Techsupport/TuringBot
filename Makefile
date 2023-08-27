@@ -43,12 +43,18 @@ docker-build: build
 	docker build . -t turingbot
 
 # Start a pre-existing docker container in daemon mode
-docker-start:
-	docker run --rm -d turingbot
+# This may not work on windows, try copy pasting the command directly into powershell
+docker-run:
+# --rm: remove the container once it finishes running
+# --name: docker will randomly generate a name if not manually specified
+# -d: run in daemon mode and start in the background
+# --mount type=bind...: take the config file in this directory, and mount it to the equivalent directory in the docker container
+# turingbot: the container to run
+	docker run --rm --name turingbot -d --mount type=bind,source=$(pwd)/config.jsonc,target=/usr/src/turingbot/config.jsonc turingbot
 
 # Make a bot docker container and start it in daemon mode
-docker-run: docker-build
-	make docker-start
+docker-start: docker-build
+	make docker-run
 
 # Generate jsdoc documentation (https://github.com/ankitskvmdam/clean-jsdoc-theme-example)
 docs:
