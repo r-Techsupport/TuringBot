@@ -57,6 +57,41 @@ client.once(Events.ClientReady, async () => {
   );
 });
 
+// when the bot receives an autocomplete interaction, figure out which module it's autocompleting for, and
+// call that module's autocomplete code
+client.on(Events.InteractionCreate, async interaction => {
+  if (!interaction.isAutocomplete()) {
+    return;
+  }
+  const input = interaction.options.getFocused(true);
+  const command = interaction.commandName;
+  const group = interaction.options.getSubcommandGroup();
+  const subcommand = interaction.options.getSubcommand(false);
+
+  const commandPath: string[] = [];
+  // the command is always defined
+  commandPath.push(command);
+  if (group !== null) {
+    commandPath.push(group);
+  }
+  if (subcommand !== null) {
+    commandPath.push(subcommand);
+  }
+  // non-null-assertion: For an autocomplete interaction to happen, a module
+  // needs to be resolved once before, then executed
+  const module: RootModule | SubModule =
+    resolveModule(commandPath).foundModule!;
+  // find the option that's currently getting autocompleted
+  const option = module.options.find(option => option.name === input.name);
+  // this should never be an issue, but just in case
+  if (option?.autocomplete === undefined) {
+    return;
+  }
+  // use the autocomplete function defined with the options, and return
+  const autocompleteValues = await option.autocomplete(input.value);
+  interaction.respond(autocompleteValues);
+});
+
 // Login to discord
 client.login(botConfig.authToken);
 

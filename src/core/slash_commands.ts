@@ -254,7 +254,6 @@ function setOptionFieldsForCommand(
     .setDescription(setFromModuleOption.description)
     .setRequired(setFromModuleOption.required ?? false);
   if (
-    setFromModuleOption.choices !== undefined &&
     [
       ModuleOptionType.Integer,
       ModuleOptionType.Number,
@@ -262,9 +261,14 @@ function setOptionFieldsForCommand(
     ].includes(setFromModuleOption.type)
   ) {
     // this could be integer, number, or string
-    (option as SlashCommandStringOption).addChoices(
-      ...(setFromModuleOption.choices! as APIApplicationCommandOptionChoice<string>[])
-    );
+    if (setFromModuleOption.choices !== undefined) {
+      (option as SlashCommandStringOption).addChoices(
+        ...(setFromModuleOption.choices! as APIApplicationCommandOptionChoice<string>[])
+      );
+    }
+    if (setFromModuleOption.autocomplete !== undefined) {
+      (option as SlashCommandStringOption).setAutocomplete(true);
+    }
   }
   return option;
 }
