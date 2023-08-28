@@ -32,6 +32,13 @@ interface duckUser {
   speedRecord: number;
 }
 
+/** Interface used for miss checks, where:
+ * User id: Unix timestamp of timeout end
+ */
+interface missMap {
+  [user: Snowflake]: number;
+}
+
 /** The root 'duck' module definition */
 const duck = new util.RootModule('duck', 'Duck management commands', [
   util.mongo,
@@ -227,39 +234,8 @@ async function handleBefriend(user: User, speed: number, channel: TextChannel) {
     {name: 'Friends', value: updatedCount?.toString() ?? '1', inline: true},
     {name: 'Kills', value: locatedUser?.killed.toString() ?? '0', inline: true},
   ]);
-  duck.registerSubModule(
-    new util.SubModule(
-      'record',
-      'Gets the current global speed record',
-      [],
-      async () => {
-        const speedRecord: duckUser | null = await getGlobalSpeedRecord();
 
-        if (!speedRecord) {
-          return util.embed.errorEmbed('Noone has set a global record yet!');
-        }
-
-        const embed: EmbedBuilder = new EmbedBuilder()
-          .setColor(Colors.Green)
-          .setThumbnail(DUCK_PIC_URL)
-          .setTitle('Duck speed record')
-          .setFields([
-            {
-              name: 'Time',
-              value: `${speedRecord.speedRecord.toString()} seconds`,
-              inline: true,
-            },
-            {
-              name: 'Record holder',
-              value: `<@!${speedRecord.user}>`,
-              inline: true,
-            },
-          ]);
-
-        await channel.send({embeds: [embed]});
-      }
-    )
-  );
+  await channel.send({embeds: [embed.toJSON()]});
 }
 
 /** Function to add a killed duck to the DB
@@ -335,7 +311,7 @@ async function miss(
   member: GuildMember,
   channel: TextChannel
 ): Promise<boolean> {
-  if (Math.random() <= FAIL_RATES.interaction! / 100) {
+  if (Math.random() >= FAIL_RATES.interaction! / 100) {
     return false;
   }
   const embed: EmbedBuilder = new EmbedBuilder()
@@ -349,10 +325,8 @@ async function miss(
     await member.timeout(COOLDOWN! * 1000, 'Missed a duck');
   }
 
-  const timeoutMessage = await channel.send({embeds: [embed]});
+  await channel.send({embeds: [embed]});
 
-  // Deleted the timeout message after 5 seconds
-  setTimeout(async () => await timeoutMessage.delete(), COOLDOWN! * 1_000!);
   return true;
 }
 
@@ -363,15 +337,38 @@ async function summonDuck(channel: TextChannel): Promise<void> {
     time: duck.config.runAwayTime * 1_000,
     filter: message => ['bef', 'bang'].includes(message.content),
   });
+  const misses: missMap = {};
   let caught = false;
 
   duckCollector.on('collect', async message => {
     const time =
       (message.createdTimestamp - duckMessage.createdTimestamp) / 1000;
 
+    // The person missed within <COOLDOWN> seconds ago
+    if (
+      misses[message.author.id] !== undefined &&
+      Date.now() <= misses[message.author.id]
+    ) {
+      // All errors are catched since the only possible one is that the author has disabled dms
+      await message.author
+        .send(`I said to wait for ${COOLDOWN!} seconds! Resetting the timer...`)
+        .catch();
+      // This informs the author that they got timed out regardless of their dm status
+      await message.react('🕗');
+      // Resets the timer
+      misses[message.author.id] = Date.now() + COOLDOWN! * 1_000;
+      return;
+    }
+
+    // The timeout has passed, just remove the value from the miss cache
+    if (misses[message.author.id] !== undefined) {
+      delete misses[message.author.id];
+    }
+
     switch (message.content) {
       case 'bef':
         if (await miss(message.member!, channel)) {
+          misses[message.author.id] = Date.now() + COOLDOWN! * 1_000;
           break;
         } else {
           await duckMessage.delete();
@@ -384,6 +381,7 @@ async function summonDuck(channel: TextChannel): Promise<void> {
 
       case 'bang':
         if (await miss(message.member!, channel)) {
+          misses[message.author.id] = Date.now() + COOLDOWN! * 1_000;
           break;
         } else {
           await duckMessage.delete();
