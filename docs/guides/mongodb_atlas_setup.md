@@ -17,7 +17,7 @@ This guide will show you how to set up a [MongoDB Atlas](https://www.mongodb.com
 ![image](../assets/mongodb_atlas/MongoDB_Asset-3.png)
 
 
-5) Add your IP address (if it hasn't been added already), if you have a dynamic ip add your whole subnet. Once done, click on `Finish and close`
+5) Add your IP address (if it hasn't been added already), if you have a dynamic ip make sure to add your whole subnet. Once done, click on `Finish and close`
 
 ![image](../assets/mongodb_atlas/MongoDB_Asset-4.png)
 
@@ -29,11 +29,11 @@ The cluster is now created and ready for use with Turingbot.
 
 ![image](../assets/mongodb_atlas/MongoDB_Asset-5.png)
 
-2) Click on `Shell`, the third step now contains all necessary information to proceed. Copy the value in the quotation marks exclkuding the protocol (`mongodb+srv://`)
+2) Click on `Shell`, the third step will contain the address of your main DB cluster shard. Copy the value in quotation marks as imaged (excluding the protocol (`mongodb+srv://`), including the trailing `/`) <br>
 
 ![image](../assets/mongodb_atlas/MongoDB_Asset-6.png)
 
-3) We are now done with the webpage setup, you can now open the bot config up and fill the info in accordingly:
+3) We are now done with the online setup, you can open the bot config up and fill the info in accordingly:
 
 ```jsonc
  "mongodb": {
@@ -44,7 +44,7 @@ The cluster is now created and ready for use with Turingbot.
   },
 ```
 
-You can now start the bot and use MongoDB normally.
+You can now start the bot and use the MongoDB dependency.
 
 
 [//]: # (All credentials used in this guide have been invalidated before pushing.)
