@@ -82,3 +82,6 @@ Code quality is extremely difficult to define as an objective metric. Rather tha
 - Focus on the connections between different parts of code, rather than the actual content of the code. Writing code that enables developers to create simple mental maps, and easily understand connections between different parts code will make further development easier, and result in higher quality code.
 - Prioritize the human over the computer. As developers become deeply engrossed in a problem, they start thinking on a level more closely to how computer interprets code. This can enable developers to solve complex problems, but it can also lead to unintuitive, unclear code that takes time to understand. If you can write your code and comments in a way that make the thought process easier to understand. Comments should prioritize explaining the impact of the code, rather than what the code is doing (code that makes use of advanced concepts may benefit from a functional explanation). 
 - Good code is written with the idea that someone else is going to need to read your code.
+
+# Code review
+// TODO: https://google.github.io/eng-practices/
