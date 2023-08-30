@@ -10,6 +10,7 @@ import {request} from 'undici';
 
 import * as util from '../../core/util.js';
 import {
+  ApplicationCommandOptionChoiceData,
   Attachment,
   BaseMessageOptions,
   ChatInputCommandInteraction,
@@ -158,7 +159,7 @@ class FactoidCache {
     });
     // return true or false depending on whether or not a factoid was deleted
     if (deletionResult.deletedCount === 1) {
-      // The factoid was succesfully deleted
+      // The factoid was successfully deleted
       return true;
     }
     // Nothing got deleted
@@ -213,6 +214,22 @@ factoid.onInitialize(async () => {
   });
 });
 
+/** This function is used for slash command option autocomplete */
+async function factoidAutocomplete(
+  input: string
+): Promise<ApplicationCommandOptionChoiceData[]> {
+  // https://www.mongodb.com/docs/manual/reference/operator/query/regex/#perform-case-insensitive-regular-expression-match
+  const matches = factoidCache!.factoidCollection.find({
+    triggers: {$regex: `(${input})(.*)`},
+  });
+
+  // format results in the appropriate autocomplete format
+  const formattedMatches = await matches
+    .map(factoid => ({name: factoid.triggers[0], value: factoid.triggers[0]}))
+    .toArray();
+  return formattedMatches;
+}
+
 /**
  * @param interaction The interaction to send the confirmation to
  * @param factoidName The factoid name to confirm the deletion of
@@ -247,6 +264,7 @@ factoid.registerSubModule(
         name: 'factoid',
         description: 'The factoid to fetch',
         required: true,
+        autocomplete: factoidAutocomplete,
       },
     ],
     async (args, interaction) => {
@@ -410,6 +428,7 @@ factoid.registerSubModule(
         name: 'factoid',
         description: 'The factoid to forget',
         required: true,
+        autocomplete: factoidAutocomplete,
       },
     ],
     async (args, interaction) => {
@@ -455,6 +474,7 @@ factoid.registerSubModule(
         name: 'factoid',
         description: 'The factoid to fetch the json of',
         required: true,
+        autocomplete: factoidAutocomplete,
       },
     ],
     async (args, interaction) => {
@@ -472,7 +492,7 @@ factoid.registerSubModule(
       }
 
       // Converts the JSON contents to a buffer so it can be sent as an attachment
-      const serializedFactoid = JSON.stringify(locatedFactoid);
+      const serializedFactoid = JSON.stringify(locatedFactoid.message);
       const files = Buffer.from(serializedFactoid);
 
       await util
@@ -504,6 +524,7 @@ trigger.registerSubmodule(
         name: 'factoid',
         description: 'The factoid to add the trigger to',
         required: true,
+        autocomplete: factoidAutocomplete,
       },
       {
         type: util.ModuleOptionType.String,
@@ -598,6 +619,7 @@ trigger.registerSubmodule(
         name: 'trigger',
         description: 'The trigger to remove',
         required: true,
+        autocomplete: factoidAutocomplete,
       },
     ],
     async args => {
