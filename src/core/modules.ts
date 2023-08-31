@@ -8,6 +8,7 @@ import {botConfig} from './config.js';
 import {
   APIApplicationCommandOptionChoice,
   APIEmbed,
+  ApplicationCommandOptionChoiceData,
   ChatInputCommandInteraction,
   CommandInteractionOption,
 } from 'discord.js';
@@ -77,14 +78,27 @@ export interface ModuleInputOption {
    *
    * Autocomplete *cannot* be set to true if you have defined choices, and this
    * only applies for string, integer, and number options.
-   *
-   * **THIS FUNCTIONALITY IS NOT YET IMPLEMENTED**
    */
   choices?: APIApplicationCommandOptionChoice[];
   /**
-   * TODO: autocomplete docstring and other thing
-   * https://discordjs.guide/slash-commands/autocomplete.html#responding-to-autocomplete-interactions
+   * If you need dynamic option generation, this is for you.
+   *
+   * This function is passed whatever the user has currently typed so far.
+   * It should return an array of {@link ApplicationCommandOptionChoiceData}.
+   * @example
+   * ```
+   * // this very basic example takes the input, and searches an array for matches
+   * const options = ['foo', 'bar', 'bat']
+   * const autocompleteFunction = input =>
+   *  // this oneliner removes any options
+   *  options.filter(option => option.startsWith(value)).map(option => {name: option, value: option});
+   * ```
+   *
+   * @doc https://discordjs.guide/slash-commands/autocomplete.html#responding-to-autocomplete-interactions
    */
+  autocomplete?: (
+    currentlyTyped: string
+  ) => Promise<ApplicationCommandOptionChoiceData[]>;
 }
 
 interface ModuleConfig {
