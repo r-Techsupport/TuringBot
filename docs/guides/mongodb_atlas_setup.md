@@ -33,12 +33,12 @@ The cluster is now created and ready for use with Turingbot.
 
 ![image](../assets/mongodb_atlas/MongoDB_Asset-6.png)
 
-3) We are now done with the online setup, you can open the bot config up and fill the info in accordingly:
+3) You are now done with the online setup and can open the bot config up and fill the info in accordingly:
 
 ```jsonc
  "mongodb": {
     "protocol": "mongodb+srv://",
-    "address": "<the value you just copied (WITH THE TRAILING /)>",
+    "address": "<the value you just copied>",
     "username": "<username>",
     "password": "<password>"
   },
