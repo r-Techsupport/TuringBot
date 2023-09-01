@@ -137,7 +137,6 @@ export class PaginatedMessage {
     const paginationRow: ActionRowBuilder<ButtonBuilder> =
       this.generateControlRow() as ActionRowBuilder<ButtonBuilder>;
 
-    
     // If payloads is null or empty, someone provided incorrect arguments to this class, return early
     if (this.payloads === null || this.payloads.length === 0) {
       return {
@@ -255,7 +254,7 @@ export class PaginatedMessage {
       if (this.payloads === null || this.payloads.length === 0) {
         return;
       }
-      
+
       // If the interaction is supposed to be deleted afterwards and wasn't stopped manually, delete it
       if (this.deleteAfter && !this.stoppedManually) {
         await interaction.deleteReply();
