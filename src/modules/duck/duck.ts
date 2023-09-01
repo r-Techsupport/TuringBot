@@ -12,30 +12,32 @@ import {
   Channel,
   Colors,
   EmbedBuilder,
-  GuildMember,
+  Message,
   Snowflake,
   TextChannel,
   User,
 } from 'discord.js';
 import {Collection, Db} from 'mongodb';
 
-/** The main interface used in the DB
+/** The main interface used to store duck records in the DB
  * @param user The user ID
  * @param befriended The number of befriended ducks
  * @param killed The number of killed ducks
  * @param speedRecord The fastest duck interaction for the user
  */
-interface duckUser {
+interface DuckUser {
   user: Snowflake;
   befriended: number;
   killed: number;
   speedRecord: number;
 }
 
-/** Interface used for miss checks, where:
- * User id: Unix timestamp of timeout end
+/** Interface used to store users who missed a duck interaction, important
+ * when people are admin and can't be timed out.
+ * Values:
+ * User id: Unix timestamp of the miss delays
  */
-interface missMap {
+interface MissTimeoutMap {
   [user: Snowflake]: number;
 }
 
@@ -45,18 +47,21 @@ const duck = new util.RootModule('duck', 'Duck management commands', [
 ]);
 
 // -- Constants --
+
 const DUCK_COLLECTION_NAME = 'ducks';
 const DUCK_QUOTES: string[] = JSON.parse(
   readFileSync('./src/modules/duck/duck_quotes.json', 'utf-8')
 );
 
 // Config constants
-const CHANNEL_IDS: string[] | undefined = duck.config.channels;
-const MINIMUM_SPAWN: number | undefined = duck.config.minimumSpawn;
-const MAXIMUM_SPAWN: number | undefined = duck.config.maximumSpawn;
-const RUN_AWAY_TIME: number | undefined = duck.config.runAwayTime;
-const COOLDOWN: number | undefined = duck.config.cooldown;
-const FAIL_RATES = duck.config.failRates;
+const channelIds: string[] | undefined = duck.config.channels;
+const minimumSpawnTime: number | undefined = duck.config.minimumSpawn;
+const maximumSpawnTime: number | undefined = duck.config.maximumSpawn;
+const runAwayTime: number | undefined = duck.config.runAwayTime;
+const missCooldown: number | undefined = duck.config.cooldown;
+const failRates = duck.config.failRates;
+
+// Embed constants
 
 const DUCK_PIC_URL =
   'https://cdn.icon-icons.com/icons2/1446/PNG/512/22276duck_98782.png';
@@ -87,12 +92,14 @@ function configFail(message: string) {
   util.logEvent(util.EventCategory.Warning, 'duck', message, 1);
 }
 
-/** Function to get a random delay from the globally configured constants
- * @returns A random delay between Max_spawn and Min_spawn
+/** Function to get a random delay from the config
+ * @returns A random delay in seconds between maximumSpawnTime and minimumSpawnTime
  */
 function getRandomDelay(): number {
   // Non null assertion - This is only called when the values aren't undefined
-  return Math.random() * (MAXIMUM_SPAWN! - MINIMUM_SPAWN!) + MINIMUM_SPAWN!;
+  return (
+    Math.random() * (maximumSpawnTime! - minimumSpawnTime!) + minimumSpawnTime!
+  );
 }
 
 /** Function to get a random quote from the quote file
@@ -102,14 +109,14 @@ function getRandomQuote(): string {
   return DUCK_QUOTES[Math.floor(Math.random() * DUCK_QUOTES.length)];
 }
 
-/** Function to get the duck record for an user by ID
+/** Function to get the duck record for an user by their ID
  * @param userId The ID of the user to get the record of
  *
- * @returns The record object if there is one, or null
+ * @returns The DuckUser object, null if it wasn't found
  */
-async function getRecord(userId: Snowflake): Promise<duckUser | null> {
+async function getRecord(userId: Snowflake): Promise<DuckUser | null> {
   const db: Db = util.mongo.fetchValue();
-  const duckRecords: Collection<duckUser> = db.collection(DUCK_COLLECTION_NAME);
+  const duckRecords: Collection<DuckUser> = db.collection(DUCK_COLLECTION_NAME);
 
   return await duckRecords.findOne({
     user: userId,
@@ -117,11 +124,11 @@ async function getRecord(userId: Snowflake): Promise<duckUser | null> {
 }
 
 /** Function to upsert a duck record in the DB
- * @param duckUser The new entry
+ * @param DuckUser The new DuckUser entry
  */
-async function updateRecord(newRecord: duckUser): Promise<void> {
+async function updateRecord(newRecord: DuckUser): Promise<void> {
   const db: Db = util.mongo.fetchValue();
-  const duckRecords: Collection<duckUser> = db.collection(DUCK_COLLECTION_NAME);
+  const duckRecords: Collection<DuckUser> = db.collection(DUCK_COLLECTION_NAME);
 
   await duckRecords.updateOne(
     {user: newRecord.user},
@@ -132,22 +139,22 @@ async function updateRecord(newRecord: duckUser): Promise<void> {
   );
 }
 
-/** Function to get the global speed record
- * @returns The duckUser object with the record
+/**
+ * @returns The DuckUser object with the record
  */
-async function getGlobalSpeedRecord(): Promise<duckUser | null> {
+async function getGlobalSpeedRecord(): Promise<DuckUser | null> {
   const db: Db = util.mongo.fetchValue();
-  const duckRecords: Collection<duckUser> = db.collection(DUCK_COLLECTION_NAME);
+  const duckRecords: Collection<DuckUser> = db.collection(DUCK_COLLECTION_NAME);
 
   return await duckRecords.find().sort({speedRecord: 1}).limit(1).next();
 }
 
-/** Function to get all befriended duck entries from the DB that don't equate to 0
- * @returns The array of duckUser objects, null if none are present
+/** Function to get all DuckUser objects from the DB that don't have 0 befriended ducks
+ * @returns The array of DuckUser objects, null if none are present
  */
-async function getBefriendedRecords(): Promise<duckUser[]> {
+async function getBefriendedRecords(): Promise<DuckUser[]> {
   const db: Db = util.mongo.fetchValue();
-  const duckRecords: Collection<duckUser> = db.collection(DUCK_COLLECTION_NAME);
+  const duckRecords: Collection<DuckUser> = db.collection(DUCK_COLLECTION_NAME);
 
   return await duckRecords
     .find({befriended: {$ne: 0}})
@@ -155,12 +162,12 @@ async function getBefriendedRecords(): Promise<duckUser[]> {
     .toArray();
 }
 
-/** Function to get all killed duck entries from the DB that don't equate to 0
- * @returns The array of duckUser objects, null if none are present
+/** Function to get all DuckUser objects from the DB that don't have 0 killed ducks
+ * @returns The array of DuckUser objects, null if none are present
  */
-async function getKilledRecords(): Promise<duckUser[]> {
+async function getKilledRecords(): Promise<DuckUser[]> {
   const db: Db = util.mongo.fetchValue();
-  const duckRecords: Collection<duckUser> = db.collection(DUCK_COLLECTION_NAME);
+  const duckRecords: Collection<DuckUser> = db.collection(DUCK_COLLECTION_NAME);
 
   return await duckRecords
     .find({killed: {$ne: 0}})
@@ -170,12 +177,11 @@ async function getKilledRecords(): Promise<duckUser[]> {
 
 // -- Core functions --
 
-/** Function to add a befriended duck to the DB
- * @param user The user who befriended the duck
+/** Function to handle a successful duck befriend event
+ * @param message The 'bef' message
  * @param speed The time it took to befriend the duck
- * @param channel The channel the duck was befriended in
  */
-async function handleBefriend(user: User, speed: number, channel: TextChannel) {
+async function handleBefriend(message: Message, speed: number) {
   const embed: EmbedBuilder = new EmbedBuilder()
     .setColor(Colors.Blurple)
     .setTitle('Duck befriended!')
@@ -183,9 +189,9 @@ async function handleBefriend(user: User, speed: number, channel: TextChannel) {
 
   // Gets the user record from the db
   const db: Db = util.mongo.fetchValue();
-  const duckRecords: Collection<duckUser> = db.collection(DUCK_COLLECTION_NAME);
-  const locatedUser: duckUser | null = await duckRecords.findOne({
-    user: user.id,
+  const duckRecords: Collection<DuckUser> = db.collection(DUCK_COLLECTION_NAME);
+  const locatedUser: DuckUser | null = await duckRecords.findOne({
+    user: message.author.id,
   });
 
   // If the user record was found, assign the value, otherwise leave it undefined
@@ -215,10 +221,10 @@ async function handleBefriend(user: User, speed: number, channel: TextChannel) {
 
   // The user has an entry, just append to it
   await duckRecords.updateOne(
-    {user: user.id},
+    {user: message.author.id},
     {
       $set: {
-        user: user.id,
+        user: message.author.id,
         befriended: updatedCount ?? 1,
         killed: locatedUser?.killed ?? 0,
         speedRecord: updatedSpeed,
@@ -228,22 +234,21 @@ async function handleBefriend(user: User, speed: number, channel: TextChannel) {
   );
 
   embed.setDescription(
-    `<@!${user.id}> befriended the duck in ${speed} seconds!`
+    `<@!${message.author.id}> befriended the duck in ${speed} seconds!`
   );
   embed.addFields([
     {name: 'Friends', value: updatedCount?.toString() ?? '1', inline: true},
     {name: 'Kills', value: locatedUser?.killed.toString() ?? '0', inline: true},
   ]);
 
-  await channel.send({embeds: [embed.toJSON()]});
+  await message.reply({embeds: [embed.toJSON()]});
 }
 
-/** Function to add a killed duck to the DB
- * @param user The user who killed the duck
+/** Function to handle a successful duck kill event
+ * @param message The 'bang' message
  * @param speed The time it took to kill the duck
- * @param channel The channel the duck was killed in
  */
-async function handleKill(user: User, speed: number, channel: TextChannel) {
+async function handleKill(message: Message, speed: number) {
   const embed: EmbedBuilder = new EmbedBuilder()
     .setColor(Colors.Red)
     .setTitle('Duck killed!')
@@ -251,7 +256,7 @@ async function handleKill(user: User, speed: number, channel: TextChannel) {
 
   // Gets the user record from the db
 
-  const locatedUser: duckUser | null = await getRecord(user.id);
+  const locatedUser: DuckUser | null = await getRecord(message.author.id);
 
   // If the user record was found, assign the value, otherwise leave it undefined
   // This has to be done because ?? no worky with arithmetics
@@ -280,7 +285,7 @@ async function handleKill(user: User, speed: number, channel: TextChannel) {
 
   // Updates the existing record
   await updateRecord({
-    user: user.id,
+    user: message.author.id,
     befriended: locatedUser?.befriended ?? 0,
     killed: updatedCount ?? 1,
     speedRecord: updatedSpeed,
@@ -291,7 +296,9 @@ async function handleKill(user: User, speed: number, channel: TextChannel) {
   });
 
   embed
-    .setDescription(`<@!${user.id}> killed the duck in ${speed} seconds!`)
+    .setDescription(
+      `<@!${message.author.id}> killed the duck in ${speed} seconds!`
+    )
     .addFields([
       {
         name: 'Friends',
@@ -301,32 +308,31 @@ async function handleKill(user: User, speed: number, channel: TextChannel) {
       {name: 'Kills', value: updatedCount?.toString() ?? '1', inline: true},
     ]);
 
-  await channel.send({embeds: [embed]});
+  await message.reply({embeds: [embed]});
 }
 
 /** Function to check whether the 'bef' or 'bang' missed
+ * @param message The 'bef' or 'bang' message
+ *
  * @returns Whether the attempt missed
  */
-async function miss(
-  member: GuildMember,
-  channel: TextChannel
-): Promise<boolean> {
-  if (Math.random() >= FAIL_RATES.interaction! / 100) {
+async function miss(message: Message): Promise<boolean> {
+  if (Math.random() >= failRates.interaction! / 100) {
     return false;
   }
   const embed: EmbedBuilder = new EmbedBuilder()
     .setColor(Colors.Red)
     .setDescription(getRandomQuote())
-    .setFooter({text: `Try again in ${COOLDOWN} seconds`});
+    .setFooter({text: `Try again in ${missCooldown} seconds`});
 
-  const bot = channel.guild.members.cache.get(util.client.user!.id)!;
+  // Times the user out if the bot has sufficient permissions
+  const bot = message.guild!.members.cache.get(util.client.user!.id)!;
 
-  if (bot.roles.highest.position > member.roles.highest.position) {
-    await member.timeout(COOLDOWN! * 1000, 'Missed a duck');
+  if (bot.roles.highest.position > message.member!.roles.highest.position) {
+    await message.member!.timeout(missCooldown! * 1000, 'Missed a duck');
   }
 
-  await channel.send({embeds: [embed]});
-
+  await message.reply({embeds: [embed]});
   return true;
 }
 
@@ -337,26 +343,28 @@ async function summonDuck(channel: TextChannel): Promise<void> {
     time: duck.config.runAwayTime * 1_000,
     filter: message => ['bef', 'bang'].includes(message.content),
   });
-  const misses: missMap = {};
+  const misses: MissTimeoutMap = {};
   let caught = false;
 
   duckCollector.on('collect', async message => {
     const time =
       (message.createdTimestamp - duckMessage.createdTimestamp) / 1000;
 
-    // The person missed within <COOLDOWN> seconds ago
+    // The person missed within <missCooldown> seconds ago
     if (
       misses[message.author.id] !== undefined &&
       Date.now() <= misses[message.author.id]
     ) {
       // All errors are catched since the only possible one is that the author has disabled dms
       await message.author
-        .send(`I said to wait for ${COOLDOWN!} seconds! Resetting the timer...`)
+        .send(
+          `I said to wait for ${missCooldown!} seconds! Resetting the timer...`
+        )
         .catch();
       // This informs the author that they got timed out regardless of their dm status
       await message.react('🕗');
       // Resets the timer
-      misses[message.author.id] = Date.now() + COOLDOWN! * 1_000;
+      misses[message.author.id] = Date.now() + missCooldown! * 1_000;
       return;
     }
 
@@ -367,33 +375,46 @@ async function summonDuck(channel: TextChannel): Promise<void> {
 
     switch (message.content) {
       case 'bef':
-        if (await miss(message.member!, channel)) {
-          misses[message.author.id] = Date.now() + COOLDOWN! * 1_000;
+        if (await miss(message)) {
+          misses[message.author.id] = Date.now() + missCooldown! * 1_000;
           break;
         } else {
-          await duckMessage.delete();
+          // Catches all errors, since the only possible one is unknownMessage, which would mean
+          // that someone else has caught a duck - return early.
+          try {
+            await duckMessage.delete();
+          } catch {
+            // Someone caught the duck and the message is unknown, return early
+            return;
+          }
           caught = true;
           duckCollector.stop();
 
-          await handleBefriend(message.author, time, channel);
+          await handleBefriend(message, time);
           return;
         }
 
       case 'bang':
-        if (await miss(message.member!, channel)) {
-          misses[message.author.id] = Date.now() + COOLDOWN! * 1_000;
+        if (await miss(message)) {
+          misses[message.author.id] = Date.now() + missCooldown! * 1_000;
           break;
         } else {
-          await duckMessage.delete();
+          // Catches all errors, since the only possible one is unknownMessage, which would mean
+          // that someone else has caught a duck - return early.
+          try {
+            await duckMessage.delete();
+          } catch {
+            // Someone caught the duck and the message is unknown, return early
+            return;
+          }
           caught = true;
           duckCollector.stop();
 
-          await handleKill(message.author, time, channel);
+          await handleKill(message, time);
           return;
         }
     }
   });
-
   duckCollector.on('end', async () => {
     // The duck wasn't caught using 'bef' or 'bang'
     if (!caught) {
@@ -412,20 +433,20 @@ async function summonDuck(channel: TextChannel): Promise<void> {
 duck.onInitialize(async () => {
   // Verifies all config values are set (When not set, they are undefined)
   if (
-    typeof MINIMUM_SPAWN !== 'number' ||
-    typeof MAXIMUM_SPAWN !== 'number' ||
-    typeof RUN_AWAY_TIME !== 'number' ||
-    typeof COOLDOWN !== 'number' ||
-    typeof FAIL_RATES.interaction !== 'number' ||
-    typeof FAIL_RATES.kill !== 'number' ||
-    typeof FAIL_RATES.donate !== 'number'
+    typeof minimumSpawnTime !== 'number' ||
+    typeof maximumSpawnTime !== 'number' ||
+    typeof runAwayTime !== 'number' ||
+    typeof missCooldown !== 'number' ||
+    typeof failRates.interaction !== 'number' ||
+    typeof failRates.kill !== 'number' ||
+    typeof failRates.donate !== 'number'
   ) {
     configFail(
       'Config error: A config option is not set or is invalid, this module will be disabled.'
     );
     return;
   }
-  if (CHANNEL_IDS === undefined) {
+  if (channelIds === undefined) {
     configFail(
       'Config error: There are no valid channels set in the config, this mdule will be disabled.'
     );
@@ -436,7 +457,7 @@ duck.onInitialize(async () => {
   const channels: TextChannel[] = [];
 
   // Done to make sure all IDs are valid
-  for (const id of CHANNEL_IDS) {
+  for (const id of channelIds) {
     const channel: Channel | undefined = util.client.channels.cache.get(id);
 
     if (channel === undefined) {
@@ -463,7 +484,7 @@ duck.onInitialize(async () => {
   }
 });
 
-// -- Module definitions --
+// -- Command definitions --
 
 duck.registerSubModule(
   new util.SubModule(
@@ -473,7 +494,7 @@ duck.registerSubModule(
       {
         type: util.ModuleOptionType.User,
         name: 'user',
-        description: 'The user to get the stats of (Default: Yourself)',
+        description: 'The user to get the stats of (Defaults to yourself)',
         required: false,
       },
     ],
@@ -498,7 +519,7 @@ duck.registerSubModule(
           .toJSON();
       }
 
-      const locatedUser: duckUser | null = await getRecord(user.id);
+      const locatedUser: DuckUser | null = await getRecord(user.id);
 
       if (locatedUser === null) {
         if (user === interaction.user) {
@@ -549,7 +570,7 @@ duck.registerSubModule(
     'Gets the current global speed record',
     [],
     async () => {
-      const speedRecord: duckUser | null = await getGlobalSpeedRecord();
+      const speedRecord: DuckUser | null = await getGlobalSpeedRecord();
 
       if (!speedRecord) {
         return util.embed.errorEmbed('Noone has set a global record yet!');
@@ -583,9 +604,9 @@ duck.registerSubModule(
     'Shows the global top befriended counts',
     [],
     async (_, interaction) => {
-      const entries: duckUser[] = await getBefriendedRecords();
+      const entries: DuckUser[] = await getBefriendedRecords();
 
-      if (entries.length === 0) {
+      if (entries === null) {
         return util.embed.errorEmbed('Noone has befriended a duck yet!');
       }
 
@@ -627,7 +648,7 @@ duck.registerSubModule(
         const user: User | undefined = util.client.users.cache.get(entry.user);
 
         let tag = `Failed to get user tag, ID: ${entry.user}`;
-        // The user exists, use their tag
+        // The user was found, use their tag
         if (user) {
           tag = user.tag;
         }
@@ -637,7 +658,7 @@ duck.registerSubModule(
         });
       }
 
-      // Makes sure fields are set if the iteration didn't finish
+      // Makes sure fields are added if the iteration didn't finish (the last 1-3 weren't added)
       if (payloads.length % 4 !== 0) {
         embed.setFields(fields);
         payloads.push({embeds: [embed.toJSON()]});
@@ -654,7 +675,7 @@ duck.registerSubModule(
     'Shows the global top killer counts',
     [],
     async (_, interaction) => {
-      const entries: duckUser[] = await getKilledRecords();
+      const entries: DuckUser[] = await getKilledRecords();
 
       if (entries.length === 0) {
         return util.embed.errorEmbed('Noone has killed a duck yet!');
@@ -698,7 +719,7 @@ duck.registerSubModule(
         const user: User | undefined = util.client.users.cache.get(entry.user);
 
         let tag = `Failed to get user tag, ID: ${entry.user}`;
-        // The user exists, use their tag
+        // The user was found, use their tag
         if (user) {
           tag = user.tag;
         }
@@ -708,7 +729,7 @@ duck.registerSubModule(
         });
       }
 
-      // Makes sure fields are set if the iteration didn't finish
+      // Makes sure fields are added if the iteration didn't finish (the last 1-3 weren't added)
       if (payloads.length % 4 !== 0) {
         embed.setFields(fields);
         payloads.push({embeds: [embed.toJSON()]});
@@ -776,9 +797,9 @@ duck.registerSubModule(
       });
 
       // Fail chance
-      if (Math.random() <= FAIL_RATES.donate! / 100) {
+      if (Math.random() <= failRates.donate! / 100) {
         return util.embed.errorEmbed(
-          `Oops, the duck broke out of its cage before it arrived. You have ${
+          `Oops, the duck ran away before you could donate it. You have ${
             donorRecord.befriended - 1
           } ducks left.`
         );
@@ -825,7 +846,7 @@ duck.registerSubModule(
       }
 
       // Fail chance
-      if (Math.random() <= FAIL_RATES.kill! / 100) {
+      if (Math.random() <= failRates.kill! / 100) {
         await updateRecord({
           user: userRecord.user,
           befriended: userRecord.befriended - 1,
@@ -867,7 +888,7 @@ duck.registerSubModule(
 duck.registerSubModule(
   new util.SubModule(
     'reset',
-    'Resets an users duck commands',
+    'Resets an users duck stats',
     [
       {
         type: util.ModuleOptionType.User,
@@ -883,7 +904,7 @@ duck.registerSubModule(
 
       const user: User = util.client.users.cache.get(userName)!;
       const db: Db = util.mongo.fetchValue();
-      const duckRecords: Collection<duckUser> =
+      const duckRecords: Collection<DuckUser> =
         db.collection(DUCK_COLLECTION_NAME);
 
       switch (
