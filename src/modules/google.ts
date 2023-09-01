@@ -7,7 +7,7 @@
  *  - {@link youtube}
  */
 
-import {APIEmbed, BaseMessageOptions, Colors} from 'discord.js';
+import {APIEmbed, BaseMessageOptions, Colors, EmbedBuilder} from 'discord.js';
 import * as util from '../core/util.js';
 import {google} from 'googleapis';
 
@@ -74,14 +74,13 @@ googleModule.registerSubModule(
       for (const resultIndex in results.data.items) {
         const result = results.data.items[parseInt(resultIndex)];
 
-        const embed: APIEmbed = util.embed.manualEmbed({
-          color: Colors.Blurple,
-          thumbnail: GOOGLE_ICON_URL,
-          title: `Results for ${query}`,
-          description: `${result.link!}\n${result.snippet!}`,
-        });
+        const embed: EmbedBuilder = new EmbedBuilder()
+          .setColor(Colors.Blurple)
+          .setThumbnail(GOOGLE_ICON_URL)
+          .setTitle(`Results for ${query}`)
+          .setDescription(`${result.link!}\n${result.snippet!}`);
 
-        payloads.push({embeds: [embed]});
+        payloads.push({embeds: [embed.toJSON()]});
       }
 
       new util.PaginatedMessage(interaction, payloads);

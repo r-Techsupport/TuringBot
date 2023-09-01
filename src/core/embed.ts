@@ -73,42 +73,7 @@ export const embed = {
     otherOptions.description = displayText;
     return otherOptions;
   },
-
-  /**
-   * Method to create a factoid with manually defined parameters
-   * Takes a {@link embedGenerator} object as an argument.
-   * @returns The finished embed object
-   */
-  manualEmbed({
-    color = Colors.Blue,
-    thumbnail,
-    title,
-    description,
-    footer,
-    fields,
-  }: embedGenerator): APIEmbed {
-    const embed: EmbedBuilder = new EmbedBuilder();
-
-    embed.setColor(color);
-    // Required field
-    embed.setDescription(description);
-
-    if (thumbnail !== undefined) {
-      embed.setThumbnail(thumbnail);
-    }
-    if (title !== undefined) {
-      embed.setTitle(title);
-    }
-    if (footer !== undefined) {
-      embed.setFooter(footer);
-    }
-    if (fields !== undefined) {
-      embed.setFields(fields);
-    }
-
-    return embed.toJSON();
-  },
-
+  
   /**
    * A preformatted embed that should be used to indicate command failure
    */
