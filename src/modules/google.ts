@@ -7,7 +7,7 @@
  *  - {@link youtube}
  */
 
-import {APIEmbed, BaseMessageOptions, Colors, EmbedBuilder} from 'discord.js';
+import {BaseMessageOptions, Colors, EmbedBuilder} from 'discord.js';
 import * as util from '../core/util.js';
 import {google} from 'googleapis';
 

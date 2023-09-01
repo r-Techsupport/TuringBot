@@ -190,10 +190,11 @@ const apply = new util.RootModule(
     const embed: EmbedBuilder = new EmbedBuilder()
       .setColor(Colors.Blurple)
       .setTitle('Application manager')
-      .setDescription(`New application! User: \`${submittedModal.user.tag}\` Application ID: \`${userApplication._id}\``)
+      .setDescription(
+        `New application! User: \`${submittedModal.user.tag}\` Application ID: \`${userApplication._id}\``
+      )
       .setFooter({text: 'Status: Pending'})
       .setFields(embedFields);
-  
 
     await applicationChannel.send({embeds: [embed]});
 

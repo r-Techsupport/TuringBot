@@ -14,11 +14,6 @@ import {
   ActionRowBuilder,
   InteractionResponse,
   Message,
-  APIEmbedField,
-  Colors,
-  EmbedBuilder,
-  ColorResolvable,
-  EmbedFooterOptions,
 } from 'discord.js';
 import {replyToInteraction} from './slash_commands.js';
 
@@ -29,25 +24,6 @@ import {replyToInteraction} from './slash_commands.js';
 export enum ConfirmEmbedResponse {
   Confirmed = 'confirmed',
   Denied = 'denied',
-}
-
-/**
- * Interface used when generating a manual embed, holds everything needed to create it
- * @param color Optional embed color
- * @param thumbnail Optional embed thumbnail URL
- * @param title Optional embed title
- * @param description Required embed description
- * @param footer Optional embed footer
- * @param fields Optional field array
- */
-interface embedGenerator {
-  color?: ColorResolvable;
-  title?: string;
-  thumbnail?: string;
-  // Required by the API
-  description: string;
-  footer?: EmbedFooterOptions;
-  fields?: APIEmbedField[];
 }
 
 /**
@@ -73,7 +49,7 @@ export const embed = {
     otherOptions.description = displayText;
     return otherOptions;
   },
-  
+
   /**
    * A preformatted embed that should be used to indicate command failure
    */
