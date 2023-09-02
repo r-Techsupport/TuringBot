@@ -109,6 +109,18 @@ async function importModulesFromFile(path: string): Promise<void> {
   // get the *default* export from each file and add it to the array of modules
   // dynamic imports import relative to the path of the file being run
   const fileExport = await import(path);
+
+  if (fileExport.default === undefined) {
+    const fileName = path.split('/').slice(-1);
+    logEvent(
+      EventCategory.Warning,
+      'core',
+      `File '${fileName}' has no module exports, skipping it`,
+      1
+    );
+    return;
+  }
+
   // to allow multiple module exports from the same file, if they exported an array, then iterate over it
   if (Array.isArray(fileExport.default)) {
     for (const module of fileExport.default) {
