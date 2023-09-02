@@ -414,7 +414,7 @@ function checkContextBlockForInteraction(
 }
 
 /** Convert an {@link ManagementPermission} to be of type {@link PermissionsBitFlag} */
-function permissionConfigToBitFlag(permission: ManagementPermission | string) {
+export function permissionConfigToBitFlag(permission: ManagementPermission | string) {
   // have fun!
   switch (permission) {
     case 'timeout':

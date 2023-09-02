@@ -259,6 +259,7 @@ export class RootModule extends BaseModule {
       this.config = botConfig.modules[this.name];
       this.enabled = this.config.enabled;
     } else {
+      this.config = {enabled: false};
       logEvent(
         EventCategory.Error,
         'core',
