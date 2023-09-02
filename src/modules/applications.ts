@@ -18,6 +18,7 @@ import {
   Role,
   GuildMember,
   APIEmbedField,
+  EmbedBuilder,
 } from 'discord.js';
 
 import * as util from '../core/util.js';
@@ -186,13 +187,14 @@ const apply = new util.RootModule(
       });
     }
 
-    const embed = util.embed.manualEmbed({
-      color: Colors.Blurple,
-      title: 'Application manager',
-      description: `New application! User: \`${submittedModal.user.tag}\` Application ID: \`${userApplication._id}\``,
-      footer: {text: 'Status: Pending'},
-      fields: embedFields,
-    });
+    const embed: EmbedBuilder = new EmbedBuilder()
+      .setColor(Colors.Blurple)
+      .setTitle('Application manager')
+      .setDescription(
+        `New application! User: \`${submittedModal.user.tag}\` Application ID: \`${userApplication._id}\``
+      )
+      .setFooter({text: 'Status: Pending'})
+      .setFields(embedFields);
 
     await applicationChannel.send({embeds: [embed]});
 
@@ -248,7 +250,7 @@ application.registerSubModule(
       }
 
       // Creates all payloads for pagination
-      const embeds: BaseMessageOptions[] = [];
+      const payloads: BaseMessageOptions[] = [];
 
       for (const entry of locatedApplications) {
         // Creates the embed fields dynamically from the responses
@@ -262,20 +264,18 @@ application.registerSubModule(
           });
         }
 
-        const embed = util.embed.manualEmbed({
-          color: Colors.Blurple,
-          title: `Applications for \`${user.tag}\``,
-          description: `Application ID: \`${entry._id}\``,
-          footer: {text: `Status: ${entry.status}`},
-          fields: embedFields,
-        });
+        const embed: EmbedBuilder = new EmbedBuilder()
+          .setColor(Colors.Blurple)
+          .setTitle(`Applications for \`${user.tag}\``)
+          .setDescription(`Application ID: \`${entry._id}\``)
+          .setFooter({text: `Status: ${entry.status}`})
+          .setFields(embedFields);
 
-        embeds.push({embeds: [embed]});
+        payloads.push({embeds: [embed.toJSON()]});
       }
 
       // Finally, send the payloads off to be paginated
-      //await util.paginatePayloads(interaction, embeds, 60, false);
-      new util.PaginatedMessage(interaction, embeds, 5);
+      new util.PaginatedMessage(interaction, payloads, 30);
     }
   )
 );
