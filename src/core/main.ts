@@ -20,9 +20,14 @@ import {
   replyToInteraction,
 } from './slash_commands.js';
 import {checkInteractionAgainstPermissionConfig} from './permissions.js';
-
 // load the config from config.default.jsonc
 botConfig.readConfigFromFileSystem();
+
+// stuff to do when the bot stops
+process.on('exit', () => {
+  // close the discord API websocket connection
+  client.destroy();
+});
 
 logEvent(EventCategory.Info, 'core', 'Starting...', 2);
 
@@ -137,6 +142,19 @@ function listenForSlashCommands() {
     }
     const resolutionResult = resolveModule(commandPath);
     if (resolutionResult.foundModule !== null) {
+      // first see if the root module is enabled
+      if (!resolutionResult.foundModule.config ?? {enabled: false}.enabled) {
+        if (
+          resolutionResult.foundModule.config ??
+          {enabled: false}.enabled !== true
+        ) {
+          replyToInteraction(interaction, {
+            embeds: [embed.errorEmbed('This command is disabled.')],
+            ephemeral: true,
+          });
+        }
+      }
+
       // validate permissions
       // if a permission config was not defined, treat it as empty
       const permissionConfig =
@@ -186,9 +204,11 @@ function listenForSlashCommands() {
                 deniedReasons.join('\n- ')
             ),
           ],
+          ephemeral: true,
         });
         return;
       }
+
       executeModule(resolutionResult.foundModule, interaction);
     }
   });

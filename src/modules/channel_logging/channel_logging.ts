@@ -53,7 +53,6 @@ channelLogging.onInitialize(async () => {
     },
   });
   worker.on('message', (message: WorkerMessage) => {
-    console.log('recieved worker message:', message);
     if (message.type === 'log') {
       util.logEvent(
         message.content!.category,

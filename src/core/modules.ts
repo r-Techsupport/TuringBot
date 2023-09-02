@@ -402,9 +402,7 @@ export class Dependency {
    * If an attempt hasn't already been made to resolve this dependency, then try to resolve it.
    * If an attempt has already been made, than it will use whatever was resolved by the first
    * resolution attempt.
-   * @returns  This function will return either: The value/result/whatever you want to call it
-   * of the dependency, or `null`.
-   *
+   * @returns  This function will return the status of the dependency being resolved
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async resolve(): Promise<DependencyStatus> {

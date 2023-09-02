@@ -3,3 +3,4 @@ config.jsonc
 target
 *.0x/
 docs/jsdoc/
+.DS_Store

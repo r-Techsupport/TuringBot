@@ -5,7 +5,12 @@
 import {MongoClient, ServerApiVersion} from 'mongodb';
 import {botConfig} from './config.js';
 import {Dependency} from './modules.js';
+import type {Db} from 'mongodb';
 
+/**
+ * A connection to MongoDB, as a Dependency
+ * @type Db
+ */
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.mongodb;
   // https://www.mongodb.com/docs/manual/reference/connection-string/
