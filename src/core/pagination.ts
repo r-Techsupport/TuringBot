@@ -137,6 +137,17 @@ export class PaginatedMessage {
     const paginationRow: ActionRowBuilder<ButtonBuilder> =
       this.generateControlRow() as ActionRowBuilder<ButtonBuilder>;
 
+    // If payloads is null or empty, someone provided incorrect arguments to this class, return early
+    if (this.payloads === null || this.payloads.length === 0) {
+      return {
+        embeds: [
+          util.embed.errorEmbed(
+            'Pagination error: No payloads were provided to paginate'
+          ),
+        ],
+      };
+    }
+
     // If there isn't a pagination row to append and the old components don't exist, set components to an empty array
     // This is handled because the final .editReply() would keep the old components,
     // the component attribute has to be set to edit the response properly.
@@ -239,6 +250,11 @@ export class PaginatedMessage {
 
     // Executed when the collector is stopped or times out.
     continueButtonListener.on('end', async () => {
+      // If payloads is null or empty, someone provided incorrect arguments, return early
+      if (this.payloads === null || this.payloads.length === 0) {
+        return;
+      }
+
       // If the interaction is supposed to be deleted afterwards and wasn't stopped manually, delete it
       if (this.deleteAfter && !this.stoppedManually) {
         await interaction.deleteReply();
