@@ -44,8 +44,8 @@ import {
   ModuleInputOption,
   ModuleOptionType,
 } from './modules.js';
-import { updateShorthandPropertyAssignment } from 'typescript';
-import { permissionConfigToBitFlag } from './permissions.js';
+import {updateShorthandPropertyAssignment} from 'typescript';
+import {permissionConfigToBitFlag} from './permissions.js';
 
 type SlashCommandOption =
   | SlashCommandAttachmentOption
@@ -103,8 +103,10 @@ export async function generateSlashCommandForModule(
   // https://discord.com/developers/docs/topics/permissions
   // 1 << 31 is the flag for "using bot commands"
   // i would have used zero, but the command is entirely disabled if 0
-  let permissionBitFlags: bigint = BigInt('0x0000000080000000');
-  const requiredPermissions = (module.config.permissions ?? {requiredPermissions: []}).requiredPermissions ?? [];
+  let permissionBitFlags = BigInt('0x0000000080000000');
+  const requiredPermissions =
+    (module.config.permissions ?? {requiredPermissions: []})
+      .requiredPermissions ?? [];
   for (const permission of requiredPermissions) {
     // perform a binary OR operation to combine the bitflags together
     // https://discordjs.guide/slash-commands/permissions.html#member-permissions
