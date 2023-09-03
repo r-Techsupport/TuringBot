@@ -31,16 +31,29 @@ git clone https://github.com/zleyyij/TuringBot
 ``` 
 You may need to change the URL to reflect the location of the repository you'd like to clone.
 
-Run the setup workflow to install dependencies:
-```
+Makefile support is assumed. If you're on Windows, you may need to manually install makefile utilities. If you do not wish to use `make`, you can open the makefile and copy commands from each entry. There should be comments explaining what each makefile command does.
+
+Run the setup workflow to install dependencies and perform other work needed for development:
+```sh
 make prep
 ```
-On Windows, you may need a makefile client. Or, you can manually copy paste commands from the makefile as needed.
 
 # Filling out the config
 Locate `config.default.jsonc`, and create a copy of it named `config.jsonc` in the same folder. 
 
-Open the newly created config file, and copy the newly created auth token into the "authToken" key at the top of the json.
+Open the newly created config file, and copy the newly created auth token into the "authToken" key at the top of the json. Read through the rest of the config file, and edit as you see fit.
 
 ## Editing the code
-VSCode is the supported editor for this project. Other editors are permitted, but VSCode is the recommended editor.
+VSCode is the supported editor for this project. Other editors may be used, but VSCode is the recommended editor. The source code for the bot is stored in `src/`, with all module code stored in `src/modules`, and the heart of the bot and utilities used for development in `src/core`.
+
+## Starting the bot
+### Bare metal
+The simplest way to start the bot is with `make start`. It will compile all of the typescript code in `src/` into javascript code, stored in `target/`, then run `target/core/main.js`.
+
+### Docker
+Docker engine needs to be *installed*, and *running* to deploy the bot in docker. 
+
+You can run `make docker-start` to build the bot into a docker container, and run the docker container, mounting the config file located in the project root.
+
+### Kubernetes
+Bot infrastructure for Kubernetes is not complete, deploying to Kubernetes is not currently supported.

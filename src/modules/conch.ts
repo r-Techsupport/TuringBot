@@ -38,7 +38,7 @@ function getRandomReply(): string {
 
 /** Formats a question for the embed, trims it if needed
  * @param question The question to format
- * @reutrns The formatted question string
+ * @returns The formatted question string
  */
 function formatQuestion(question: string): string {
   question = question.substring(0, 255);
