@@ -1,6 +1,5 @@
 import {readdirSync, Dirent} from 'fs';
 import {
-  APIEmbedField,
   Events,
   APIEmbed,
   ChatInputCommandInteraction,
@@ -318,11 +317,14 @@ export function resolveModule(tokens: string[]): ModuleResolutionResult {
   };
 }
 
-/** Make sure all dependencies for this module were successfully resolved before executing 
- * 
+/** Make sure all dependencies for this module were successfully resolved before executing
+ *
  * @returns Whether all dependencies were succesfully resolved
-*/
-async function validateDependencies(module: RootModule | SubModule, interaction: ChatInputCommandInteraction): Promise<boolean> {
+ */
+async function validateDependencies(
+  module: RootModule | SubModule,
+  interaction: ChatInputCommandInteraction
+): Promise<boolean> {
   for (const dep of module.dependencies) {
     if (dep.status === DependencyStatus.Failed) {
       void replyToInteraction(interaction, {
@@ -337,7 +339,6 @@ async function validateDependencies(module: RootModule | SubModule, interaction:
   }
   return true;
 }
-
 
 /** Resolve all dependencies for a module, and then execute it, responding to the user with an error if needed */
 async function executeModule(
@@ -354,9 +355,8 @@ async function executeModule(
   // First make sure that all dependencies were succesfully validated
   if (!(await validateDependencies(module, interaction))) {
     return;
-  } 
+  }
   // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
-
 
   // next figure out where the correct options are located, to pass to the module
   // could be considered for minor optimizations

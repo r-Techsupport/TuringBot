@@ -5,7 +5,6 @@
 import {MongoClient, ServerApiVersion} from 'mongodb';
 import {botConfig} from './config.js';
 import {Dependency} from './modules.js';
-import type {Db} from 'mongodb';
 
 /**
  * A connection to MongoDB, as a Dependency

@@ -5,7 +5,7 @@
  *  - Submodules: Get, Remember, Forget, Json, {@link trigger} -> (Add, Remove)
  */
 import {ObjectId} from 'mongodb';
-import type {Collection, Db} from 'mongodb';
+import type {Collection} from 'mongodb';
 import {request} from 'undici';
 
 import * as util from '../../core/util.js';
@@ -15,7 +15,6 @@ import {
   BaseMessageOptions,
   ChatInputCommandInteraction,
   Events,
-  InteractionReplyOptions,
   Message,
 } from 'discord.js';
 import {validateMessage} from './factoid_validation.js';
@@ -703,17 +702,16 @@ factoid.registerSubModule(
             3
           );
         });
-      },
-      // Cannot deferReply since the returned message is ephemeral
-      false
+    },
+    // Cannot deferReply since the returned message is ephemeral
+    false
   )
 );
-
 
 // TODO: File support, CSS for spaces (or alternative pasting solution), caching
 /*
 factoid.registerSubModule(
-  new util.SubModule('all', 
+  new util.SubModule('all',
   'Generate a list of all factoids as a webpage',
   [{
     type: util.ModuleOptionType.Boolean,
@@ -726,7 +724,7 @@ factoid.registerSubModule(
     args.find(arg => arg.name === 'file')?.value ?? false;
 
 
-    
+
     // Pulls the factoids from the DB
       // Defines the DB structures
       const db: Db = util.mongo.fetchValue();
@@ -756,7 +754,7 @@ factoid.registerSubModule(
 
         ul li {
             display: table-row;
-            
+
         }
 
         ul li:nth-child(even) {
@@ -796,10 +794,9 @@ factoid.registerSubModule(
 
     return util.embed.infoEmbed(url);
   }
-  
+
   )
 );
 */
-
 
 export default factoid;
