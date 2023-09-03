@@ -209,7 +209,6 @@ const apply = new util.RootModule(
   false
 );
 
-// TODO: Make this admin only
 /** The root application group definition, meant for admin use */
 const application = new util.RootModule(
   'application',

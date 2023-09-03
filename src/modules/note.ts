@@ -162,8 +162,6 @@ notes.registerSubModule(
       },
     ],
     async args => {
-      // TODO: Add an early return for non-admin invokers
-
       const userArg: string = args
         .find(arg => arg.name === 'user')!
         .value!.toString();

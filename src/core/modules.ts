@@ -189,10 +189,12 @@ export class BaseModule {
     command: string,
     helpMessage: string,
     options?: ModuleInputOption[],
-    onCommandExecute?: ModuleCommandFunction
+    onCommandExecute?: ModuleCommandFunction,
+    deferReply = true
   ) {
     this.name = command;
     this.description = helpMessage;
+    this.deferReply = deferReply;
     this.options = options ?? [];
     // the default behavior for this is to do nothing
     if (this.onCommandExecute) {
@@ -318,9 +320,10 @@ export class SubModule extends BaseModule {
     command: string,
     description: string,
     options?: ModuleInputOption[],
-    onCommandExecute?: ModuleCommandFunction
+    onCommandExecute?: ModuleCommandFunction,
+    deferReply = true
   ) {
-    super(command, description, options ?? [], onCommandExecute);
+    super(command, description, options ?? [], onCommandExecute, deferReply);
   }
 
   /**

@@ -55,6 +55,9 @@
 
   // The key for each module should match the one specified in the root module initialization
   // if the `enabled` key is missing, the extension will be disabled by default, and a warning issued
+
+  // --ALL IDS MUST BE STRINGS, NOT NUMBERS--
+
   /*
   Here's an example permissions config and boilerplate:
   You can use this by setting the `permissions` key of each extension
@@ -63,7 +66,6 @@
   "permissions": {
     // a list of all possible permission restrictions
     "requiredPerms": ["kick", "ban", "timeout", "manage_roles", "administrator"],
-    // **ALL IDs MUST BE STRINGS (not numbers)**
     "allowed": {
         // list of user IDs
         "users": [],
@@ -117,7 +119,8 @@
     "factoid": {
       "enabled": true,
       // a list of characters that can be used as a prefix to trigger a factoid
-      "prefixes": ["?"]
+      "prefixes": ["?"],
+      "pasteApi": ""
     },
     "note": {
       "enabled": true
