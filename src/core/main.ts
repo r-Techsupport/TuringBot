@@ -1,6 +1,5 @@
 import {readdirSync, Dirent} from 'fs';
 import {
-  APIEmbedField,
   Events,
   APIEmbed,
   ChatInputCommandInteraction,
@@ -48,9 +47,12 @@ client.once(Events.ClientReady, async () => {
   await importModules();
   const newSlashCommands = [];
   for (const module of modules) {
-    newSlashCommands.push(generateSlashCommandForModule(module));
+    // Only register the slash commands if the module is enabled
+    if (module.config.enabled) {
+      newSlashCommands.push(generateSlashCommandForModule(module));
+    }
   }
-  // TODO: unregister slash commands if disabled, and detect any changes to slash commands
+
   await registerSlashCommandSet(await Promise.all(newSlashCommands));
   await initializeModules();
   listenForSlashCommands();
@@ -315,6 +317,29 @@ export function resolveModule(tokens: string[]): ModuleResolutionResult {
   };
 }
 
+/** Make sure all dependencies for this module were successfully resolved before executing
+ *
+ * @returns Whether all dependencies were succesfully resolved
+ */
+async function validateDependencies(
+  module: RootModule | SubModule,
+  interaction: ChatInputCommandInteraction
+): Promise<boolean> {
+  for (const dep of module.dependencies) {
+    if (dep.status === DependencyStatus.Failed) {
+      void replyToInteraction(interaction, {
+        embeds: [
+          embed.errorEmbed(
+            `Unable to execute command because resolution failed for dependency \`${dep.name}\``
+          ),
+        ],
+      });
+      return false;
+    }
+  }
+  return true;
+}
+
 /** Resolve all dependencies for a module, and then execute it, responding to the user with an error if needed */
 async function executeModule(
   module: RootModule | SubModule,
@@ -325,21 +350,13 @@ async function executeModule(
     await interaction.deferReply();
   }
 
-  // TODO: move this to a separate function
   // no submodules, it's safe to execute the command and return
-  // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
-  for (const dep of module.dependencies) {
-    if (dep.status === DependencyStatus.Failed) {
-      void replyToInteraction(interaction, {
-        embeds: [
-          embed.errorEmbed(
-            `Unable to execute command because resolution failed for dependency "${dep.name}"`
-          ),
-        ],
-      });
-      return;
-    }
+
+  // First make sure that all dependencies were succesfully validated
+  if (!(await validateDependencies(module, interaction))) {
+    return;
   }
+  // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
 
   // next figure out where the correct options are located, to pass to the module
   // could be considered for minor optimizations
@@ -397,38 +414,6 @@ async function executeModule(
           );
         });
     });
-}
-
-/**
- * Generate an embed that contains a neatly formatted help message for the specified module,
- * telling the user they didn't use that command correctly.
- * @param mod The module to generate documentation for. This function assumes that this module has subcommands
- * @param priorCommands If specified, this will format the help message to make the command include these.
- * So if the user typed `foo bar baz`, and you want to generate a help message, you can make help strings
- * include the full command
- * @deprecated I don't think this is needed anymore with the slash command migration
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function generateHelpMessageForModule(
-  mod: SubModule | RootModule,
-  priorCommands = ''
-): APIEmbed {
-  // make a list of fields to use  based off of commands and help strings
-  // TODO: possibly make it exclude the subcommands bit if there are none, or change it to indicate
-  // that it's a subcommand
-  const helpFields: APIEmbedField[] = [];
-  for (const submod of mod.submodules) {
-    helpFields.push({
-      name: `\`${priorCommands} ${submod.name}\``,
-      value: `${submod.description} \n(${submod.submodules.length} subcommands)`,
-    });
-  }
-
-  return {
-    title: 'Invalid command usage. Subcommands for current command:',
-    fields: helpFields,
-    color: 0x2e8eea,
-  };
 }
 
 /**
