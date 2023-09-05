@@ -281,7 +281,7 @@ export async function registerSlashCommandSet(
   const guild = client.guilds.cache.first()!;
   // ship the provided list off to discord to discord
   // https://discordjs.guide/creating-your-bot/command-deployment.html#guild-commands
-  const rest = new REST().setToken(botConfig.authToken);
+  const rest = new REST().setToken(botConfig.secrets.discordAuthToken);
   /** list of slash commands, converted to json, to be sent off to discord */
   const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
   for (const command of commandSet) {

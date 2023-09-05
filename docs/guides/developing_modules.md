@@ -158,6 +158,70 @@ const conch = new util.RootModule(
 );
 ```
 
+## Understanding Javascript Functions (and callbacks)
+There are a lot of different ways to define what's functionally (no pun intended) the same thing in Javascript. In Javascript, functions can be treated as values, so it's possible to use them as arguments, re-assign them, and store them as variables.
+
+```typescript
+// normal
+function hiThere(args) {
+  //code you want to run goes here
+}
+
+// while largely considered bad/dated practice, you can do this:
+// this is assigning hiThere to a function.
+const hiThere = function () {
+}
+
+// "callback" or arrow syntax is a shorthand way to define functions, it's commonly used to pass functions as arguments eg: iWantToRunThisCode(() => {})
+const hiThere = (args) => {
+  // code you want to run goes here
+};
+
+// if you only have one arg, although this is less commonly used, you can do this, and exclude parentheses:
+const hiThere = arg => {
+  // code you want to run goes here
+};
+
+// although a bit odd, a block and statement are usually interchangeable, so if you only want to run one statement, you can do that too
+// the return value will be the result of arbitrary statement
+const hiThere = arg => arbitraryStatement();
+
+// there's also filter syntax, where you return the result of a comparison
+const isHello = arg => arg === "hello";
+
+// these can also all be async:
+async function hiThere() {}
+const hiThere = async () => {}
+const hiThere = async arg => {}
+// and so on
+```
+
+### Callbacks
+It's possible to pass a function as an argument to another function.
+
+```typescript
+// this function accepts a callback
+function callAnotherFunction(functionToCall: () => {}) {
+  console.log('calling function');
+  functionToCall();
+}
+
+// here, we can pass a function as an argument
+callAnotherFunction(() => {
+  console.log('I got called!');
+});
+
+// because functions can also be treated as values, we can define a function, then pass it in
+function functionToCall() {
+  console.log('I got called, and passed as a variable!');
+}
+
+// excluding the parentheses means passing by value, not evaluating the function
+callAnotherFunction(functionToCall) {
+
+}
+```
+
 ## Using MongoDB
 MongoDB is the database of choice for this project, and it can be accessed by specifying it as a Dependency in the root module's constructor. This will disable your module if MongoDB is inaccessible.
 

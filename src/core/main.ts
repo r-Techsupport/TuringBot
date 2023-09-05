@@ -98,7 +98,7 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 // Login to discord
-client.login(botConfig.authToken);
+client.login(botConfig.secrets.discordAuthToken);
 
 /**
  * This function imports the default export from the file specified, and pushes each module to

@@ -18,4 +18,4 @@ COPY target/ ./target/
 
 
 # Run it without compiling
-CMD ["make", "run"]
+CMD ["make", "prod-run"]
