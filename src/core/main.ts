@@ -12,7 +12,7 @@ import {DependencyStatus, RootModule, SubModule, modules} from './modules.js';
 import {client} from './api.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
-import {embed} from './util.js';
+import {embed} from './ui.js';
 import {
   generateSlashCommandForModule,
   registerSlashCommandSet,
