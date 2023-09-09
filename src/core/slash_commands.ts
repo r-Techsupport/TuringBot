@@ -290,7 +290,8 @@ export async function registerSlashCommandSet(
   // send everything to discord
   // The put method is used to fully refresh all commands in the guild with the current set
   await rest.put(
-    Routes.applicationGuildCommands(botConfig.applicationId, guild.id),
+    // non-null assertion: this code should only be run when the bot is logged in
+    Routes.applicationGuildCommands(client.application!.id, guild.id),
     {
       body: commands,
     }
