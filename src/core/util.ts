@@ -5,11 +5,10 @@
  *
  */
 export * from './api.js';
-export * from './embed.js';
+export * from './ui.js';
 export * from './slash_commands.js';
 export * from './config.js';
 export * from './logger.js';
 export * from './modules.js';
 export * from './main.js';
 export * from './mongo.js';
-export * from './pagination.js';
