@@ -82,6 +82,8 @@ export const embed = {
 
   /**
    * This provides a graceful way to ask a user whether or not they want something to happen.
+   * If the interaction is ephemeral, the embed has to be deleted or edited manually, since
+   * ephemeral messages can't be deleted using .delete()
    * @param prompt will be displayed in the embed with the `description` field
    */
   async confirmEmbed(
@@ -118,7 +120,10 @@ export const embed = {
         filter: i => i.user.id === interaction.member?.user.id,
         time: timeout * 1000,
       });
-      response.delete();
+      // Ephemeral messages can't be deleted using message.delete()
+      if (!interaction.ephemeral) {
+        response.delete();
+      }
       return buttonInteraction.customId as ConfirmEmbedResponse;
     } catch {
       // awaitMessageComponent throws an error when the timeout was reached, so this behavior assumes
@@ -133,7 +138,10 @@ export const embed = {
       });
       // delete the embed after 15 seconds
       setTimeout(() => {
-        response.delete();
+        // Ephemeral messages can't be deleted using message.delete()
+        if (!interaction.ephemeral) {
+          response.delete();
+        }
       }, 15_000);
       return ConfirmEmbedResponse.Denied;
     }
