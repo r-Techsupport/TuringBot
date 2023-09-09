@@ -11,6 +11,8 @@ import {
   ButtonBuilder,
   ButtonStyle,
   BaseMessageOptions,
+  EmbedField,
+  EmbedBuilder,
 } from 'discord.js';
 import * as util from '../core/util.js';
 
@@ -270,4 +272,33 @@ export class PaginatedMessage {
       }
     });
   }
+}
+
+/**
+ * Function to create an array of payloads with embeds with fields separated properly
+ * @param fields An array of embed fields
+ * @param embedCallback A callback that has the fieldSet as an arg, use to make a template for every page
+ * @param splitFieldsBy What number to split fields by
+ */
+export function createEmbedFieldPayloads(
+  fields: EmbedField[],
+  embedCallback: (fields: EmbedField[]) => EmbedBuilder,
+  splitFieldsBy: number
+): BaseMessageOptions[] {
+  const payloads: BaseMessageOptions[] = [];
+  const fieldSets: EmbedField[][] = [];
+
+  // Appends sets of fields that are splitFieldsBy long
+  for (let i = 0; i < fields.length; i += splitFieldsBy) {
+    fieldSets.push(fields.slice(i, i + splitFieldsBy));
+  }
+
+  // Finally, create the payloads
+  for (const fieldSet of fieldSets) {
+    payloads.push({
+      embeds: [embedCallback(fieldSet).toJSON()],
+    });
+  }
+
+  return payloads;
 }

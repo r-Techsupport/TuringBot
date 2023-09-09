@@ -44,7 +44,6 @@ import {
   ModuleInputOption,
   ModuleOptionType,
 } from './modules.js';
-import {updateShorthandPropertyAssignment} from 'typescript';
 import {permissionConfigToBitFlag} from './permissions.js';
 
 type SlashCommandOption =
