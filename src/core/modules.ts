@@ -216,7 +216,7 @@ export class BaseModule {
   }
 
   /**
-   * Method to check if all dependencies for this module have been succesfully resolved
+   * Check to see if all the dependencies specified for this particular module are defined
    */
   public depsResolved(): boolean {
     let allResolved = true;
