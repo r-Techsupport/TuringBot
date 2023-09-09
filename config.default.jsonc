@@ -143,25 +143,39 @@
       "applyRoleOnApprove": false,
       "roleIdOnApprove": ""
     },
-  "google": {
-    "enabled": true,
-    "ApiKey": "",
-    "CseId": ""
-  },
-  // API key is shared with google
-  "youtube": {
-    "enabled": true
-  },
-  "bot": {
-    "enabled": true
-  },
-  "autopaste": {
-    "enabled": true,
-    // Make sure the ids are all strings, not numbers
-    "immuneRoleIds": [],
-    "maxLength": 100,
-    "pasteFooterContent": "",
-    "pasteApi": ""
-  }
+    "google": {
+      "enabled": true,
+      "ApiKey": "",
+      "CseId": ""
+    },
+    // API key is shared with google
+    "youtube": {
+      "enabled": true
+    },
+    "bot": {
+      "enabled": true
+    },
+    "autopaste": {
+      "enabled": true,
+      // Make sure the ids are all strings, not numbers
+      "immuneRoleIds": [],
+      "maxLength": 100,
+      "pasteFooterContent": "",
+      "pasteApi": ""
+    },
+    "filter": {
+      "enabled": true,
+      "exemptRoles": []
+    },
+    "warn": {
+      "enabled": true,
+      "maxWarns": 3
+    },
+    "warns": {
+      "enabled": true
+    },
+    "unwarn": {
+      "enabled": true
+    }
   }
 }

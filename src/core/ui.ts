@@ -20,6 +20,8 @@ import {
   ComponentType,
   ModalBuilder,
   Message,
+  EmbedField,
+  EmbedBuilder,
 } from 'discord.js';
 import {replyToInteraction} from './slash_commands.js';
 
@@ -88,6 +90,8 @@ export const embed = {
 
   /**
    * This provides a graceful way to ask a user whether or not they want something to happen.
+   * If the interaction is ephemeral, the embed has to be deleted or edited manually, since
+   * ephemeral messages can't be deleted using .delete()
    * @param prompt will be displayed in the embed with the `description` field
    */
   async confirmEmbed(
@@ -124,7 +128,10 @@ export const embed = {
         filter: i => i.user.id === interaction.member?.user.id,
         time: timeout * 1000,
       });
-      response.delete();
+      // Ephemeral messages can't be deleted using message.delete()
+      if (!interaction.ephemeral) {
+        response.delete();
+      }
       return buttonInteraction.customId as ConfirmEmbedResponse;
     } catch {
       // awaitMessageComponent throws an error when the timeout was reached, so this behavior assumes
@@ -139,7 +146,10 @@ export const embed = {
       });
       // delete the embed after 15 seconds
       setTimeout(() => {
-        response.delete();
+        // Ephemeral messages can't be deleted using message.delete()
+        if (!interaction.ephemeral) {
+          response.delete();
+        }
       }, 15_000);
       return ConfirmEmbedResponse.Denied;
     }
@@ -459,4 +469,33 @@ export function generateModal({id, title, fields}: ModalOptions): ModalBuilder {
   modal.addComponents(components);
 
   return modal;
+}
+
+/**
+ * Function to create an array of payloads with embeds with fields separated properly
+ * @param fields An array of embed fields
+ * @param embedCallback A callback that has the fieldSet as an arg, use to make a template for every page
+ * @param splitFieldsBy What number to split fields by
+ */
+export function createEmbedFieldPayloads(
+  fields: EmbedField[],
+  embedCallback: (fields: EmbedField[]) => EmbedBuilder,
+  splitFieldsBy: number
+): BaseMessageOptions[] {
+  const payloads: BaseMessageOptions[] = [];
+  const fieldSets: EmbedField[][] = [];
+
+  // Appends sets of fields that are splitFieldsBy long
+  for (let i = 0; i < fields.length; i += splitFieldsBy) {
+    fieldSets.push(fields.slice(i, i + splitFieldsBy));
+  }
+
+  // Finally, create the payloads
+  for (const fieldSet of fieldSets) {
+    payloads.push({
+      embeds: [embedCallback(fieldSet).toJSON()],
+    });
+  }
+
+  return payloads;
 }
