@@ -215,6 +215,21 @@ export class BaseModule {
     this.executeCommand = functionToCall;
   }
 
+  /**
+   * Check to see if all the dependencies specified for this particular module are defined
+   */
+  public depsResolved(): boolean {
+    let allResolved = true;
+
+    for (const dependency of this.dependencies) {
+      if (dependency.status !== DependencyStatus.Succeeded) {
+        allResolved = false;
+        break;
+      }
+    }
+    return allResolved;
+  }
+
   // TODO: make use of botConfig.editConfigOption() and add a method to enable editing the local config for a module without specifying the absolute path.
   // this could be thought of similar to `this.config` vs `botConfig.modules["$CONFIG_NAME"]` every time
 }

@@ -88,6 +88,12 @@ client.on(Events.InteractionCreate, async interaction => {
   // needs to be resolved once before, then executed
   const module: RootModule | SubModule =
     resolveModule(commandPath).foundModule!;
+
+  // The module isn't done initializing yet, don't autocomplete
+  if (!module.depsResolved()) {
+    return;
+  }
+
   // find the option that's currently getting autocompleted
   const option = module.options.find(option => option.name === input.name);
   // this should never be an issue, but just in case
