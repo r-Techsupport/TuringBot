@@ -161,18 +161,14 @@ function listenForSlashCommands() {
       commandPath.push(subcommand);
     }
     const resolutionResult = resolveModule(commandPath);
+    // if a module was found
     if (resolutionResult.foundModule !== null) {
-      // first see if the root module is enabled
-      if (!resolutionResult.foundModule.config ?? {enabled: false}.enabled) {
-        if (
-          resolutionResult.foundModule.config ??
-          {enabled: false}.enabled !== true
-        ) {
-          replyToInteraction(interaction, {
-            embeds: [embed.errorEmbed('This command is disabled.')],
-            ephemeral: true,
-          });
-        }
+      if (resolutionResult.foundModule.config.enabled !== true) {
+        replyToInteraction(interaction, {
+          embeds: [embed.errorEmbed('This command is disabled.')],
+          ephemeral: true,
+        });
+        return;
       }
 
       // validate permissions
