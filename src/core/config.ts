@@ -11,6 +11,7 @@ import {EventCategory, logEvent} from './logger.js';
  * Path of the config on the filesystem relative to where node is being run from
  */
 const CONFIG_LOCATION = './config.jsonc';
+const SECRETS_LOCATION = './secrets.jsonc';
 
 /**
  * This is an object mirror of `config.jsonc`. You can load the config from the filesystem with `readConfigFromFileSystem()`.
@@ -29,6 +30,8 @@ export const botConfig: any = {
         botConfig,
         parseJSONC(readFileSync(CONFIG_LOCATION, 'utf-8'))
       );
+      // read `secrets.jsonc` into the config, under `.secrets`
+      botConfig.secrets = parseJSONC(readFileSync(SECRETS_LOCATION, 'utf-8'));
     } catch (err) {
       throw new Error(
         'Unable to locate or process config.jsonc, are you sure it exists?'

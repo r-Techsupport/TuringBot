@@ -39,12 +39,12 @@ googleModule.registerSubModule(
     ],
     async (args, interaction) => {
       // Key checks
-      const API_KEY: string | undefined = googleModule.config.ApiKey;
-      const CSE_ID: string | undefined = googleModule.config.CseId;
+      const API_KEY: string | undefined = util.botConfig.secrets.google.apiKey;
+      const CSE_ID: string | undefined = util.botConfig.secrets.google.cseId;
 
       if (
-        [undefined, ''].includes(API_KEY) ||
-        [undefined, ''].includes(CSE_ID)
+        [undefined, '', 'YOUR_GOOGLE_API_KEY_HERE'].includes(API_KEY) ||
+        [undefined, '', 'YOUR_GOOGLE_CSE_ID_HERE'].includes(CSE_ID)
       ) {
         util.logEvent(
           util.EventCategory.Warning,

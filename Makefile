@@ -21,6 +21,13 @@ start: build
 # instead of the compiled js
 	node --enable-source-maps ./target/core/main.js 
 
+# Start the bot, without compiling, running using the production node profile
+# (will start more slowly, but have better performance afterwords)
+# https://nodejs.dev/en/learn/nodejs-the-difference-between-development-and-production/
+# (will only work in linux)
+prod-run:
+	NODE_ENV=production node --enable-source-maps ./target/core/main.js
+
 # Compile code and run unit tests https://nodejs.org/api/test.html#test-runner
 test: build
 	node --test ./target/tests
@@ -50,7 +57,7 @@ docker-run:
 # -d: run in daemon mode and start in the background
 # --mount type=bind...: take the config file in this directory, and mount it to the equivalent directory in the docker container
 # turingbot: the container to run
-	docker run --rm --name turingbot -d --mount type=bind,source=$(pwd)/config.jsonc,target=/usr/src/turingbot/config.jsonc turingbot
+	docker run --rm --name turingbot -d --mount type=bind,source=$(pwd)/config.jsonc,target=/usr/src/turingbot/config.jsonc --mount type=bind,source=$(pwd)/secrets.jsonc,target=/usr/src/turingbot/secrets.jsonc turingbot
 
 # Make a bot docker container and start it in daemon mode
 docker-start: docker-build
