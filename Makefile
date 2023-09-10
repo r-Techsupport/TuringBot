@@ -68,4 +68,4 @@ docker-docs: docs
 # --rm removes the container once it's finished running,
 # -d means to run in daemon mode, -p 8080:80 indicates that we want to
 # take port 80 inside the container and map it to port 8080 on the outside
-	docker run --rm -d -p 8080:80 turingdocs
+	docker run --rm -d -p 8080:80 --name turingdocs turingdocs 

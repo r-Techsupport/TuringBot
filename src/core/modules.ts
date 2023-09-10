@@ -94,7 +94,7 @@ export interface ModuleInputOption {
    *  options.filter(option => option.startsWith(value)).map(option => {name: option, value: option});
    * ```
    *
-   * @doc https://discordjs.guide/slash-commands/autocomplete.html#responding-to-autocomplete-interactions
+   * @see https://discordjs.guide/slash-commands/autocomplete.html#responding-to-autocomplete-interactions
    */
   autocomplete?: (
     currentlyTyped: string
