@@ -76,7 +76,9 @@
       "roleIdOnApprove": ""
     },
     "google": {
-      "enabled": true
+      "enabled": true,
+      "ApiKey": "",
+      "CseId": ""
     },
     // API key is shared with google
     "youtube": {
@@ -88,12 +90,24 @@
     "autopaste": {
       "enabled": true,
       // Make sure the ids are all strings, not numbers
-     "immuneRoleIds": [],
-     "maxLength": 100,
-     // optionally, include a footer for autopasted messages
-     "pasteFooterContent": "Note: long messages are automatically pasted",
-     // the URL of a valid linx paste server
-     "pasteApi": ""
+      "immuneRoleIds": [],
+      "maxLength": 100,
+      "pasteFooterContent": "",
+      "pasteApi": ""
+    },
+    "filter": {
+      "enabled": true,
+      "exemptRoles": []
+    },
+    "warn": {
+      "enabled": true,
+      "maxWarns": 3
+    },
+    "warns": {
+      "enabled": true
+    },
+    "unwarn": {
+      "enabled": true
     }
   }
 }
