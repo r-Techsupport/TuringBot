@@ -51,7 +51,8 @@
     "factoid": {
       "enabled": true,
       // a list of characters that can be used as a prefix to trigger a factoid
-      "prefixes": ["?"]
+      "prefixes": ["?"],
+      "pasteApi": ""
     },
     "note": {
       "enabled": true
@@ -87,7 +88,7 @@
     "autopaste": {
       "enabled": true,
       // Make sure the ids are all strings, not numbers
-      "immuneRoleIds": [],
+     "immuneRoleIds": [],
      "maxLength": 100,
      // optionally, include a footer for autopasted messages
      "pasteFooterContent": "Note: long messages are automatically pasted",

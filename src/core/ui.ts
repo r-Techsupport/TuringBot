@@ -1,18 +1,160 @@
 /**
- *@file This file contains the code to send a paginated array of payloads.
+ * @file
+ * This file contains code for all ui related elements such as modals, response embeds and pagination.
  */
 
 import {
+  APIEmbed,
   ChatInputCommandInteraction,
-  ActionRowBuilder,
-  ComponentType,
-  ButtonInteraction,
-  ButtonComponent,
   ButtonBuilder,
   ButtonStyle,
+  ActionRowBuilder,
+  ButtonInteraction,
   BaseMessageOptions,
+  TextInputStyle,
+  InteractionResponse,
+  ButtonComponent,
+  ModalActionRowComponentBuilder,
+  RestOrArray,
+  TextInputBuilder,
+  ComponentType,
+  ModalBuilder,
+  Message,
+  EmbedField,
+  EmbedBuilder,
 } from 'discord.js';
-import * as util from '../core/util.js';
+import {replyToInteraction} from './slash_commands.js';
+
+/**
+ * Used in pairing with `{@link confirmEmbed()}`, this is a way to indicate whether or not the user confirmed a choice, and is passed as
+ * the contents of the Promise returned by `{@link confirmEmbed()}`.
+ */
+export enum ConfirmEmbedResponse {
+  Confirmed = 'confirmed',
+  Denied = 'denied',
+}
+
+/**
+ * Helper utilities used to speed up embed work
+ */
+export const embed = {
+  /**
+   * simple function that generates a minimal APIEmbed with only the `description` set.
+   *  Other options can be set with `otherOptions`
+   *
+   * @param displayText The text you'd like the embed to contain
+   *
+   * @param otherOptions Any custom changes you'd like to make to the embed.
+   * @see {@link https://discordjs.guide/popular-topics/embeds.html#using-an-embed-object} for specific options
+   *
+   * @example
+   * // Just the description set
+   * simpleEmbed("they don't did make em like they anymore these days do");
+   * // Maybe you want to make the embed red
+   * simpleEmbed("they don't did make em like they anymore these days do", { color: 0xFF0000 });
+   */
+  simpleEmbed(displayText: string, otherOptions: APIEmbed = {}): APIEmbed {
+    otherOptions.description = displayText;
+    return otherOptions;
+  },
+
+  /**
+   * A preformatted embed that should be used to indicate command failure
+   */
+  errorEmbed(errorText: string): APIEmbed {
+    const responseEmbed: APIEmbed = {
+      description: '❌ ' + errorText,
+      color: 0xf92f60,
+      footer: {
+        text: 'Operation failed.',
+      },
+    };
+    return responseEmbed;
+  },
+
+  successEmbed(successText: string): APIEmbed {
+    const responseEmbed: APIEmbed = {
+      color: 0x379c6f,
+      description: '✅ ' + successText,
+    };
+    return responseEmbed;
+  },
+
+  infoEmbed(infoText: string): APIEmbed {
+    const responseEmbed: APIEmbed = {
+      color: 0x2e8eea,
+      description: infoText,
+    };
+    return responseEmbed;
+  },
+
+  /**
+   * This provides a graceful way to ask a user whether or not they want something to happen.
+   * If the interaction is ephemeral, the embed has to be deleted or edited manually, since
+   * ephemeral messages can't be deleted using .delete()
+   * @param prompt will be displayed in the embed with the `description` field
+   */
+  async confirmEmbed(
+    prompt: string,
+    // this might break if reply() is called twice
+    interaction: ChatInputCommandInteraction,
+    timeout = 60
+  ): Promise<ConfirmEmbedResponse> {
+    // https://discordjs.guide/message-components/action-rows.html
+    const confirm = new ButtonBuilder()
+      .setCustomId(ConfirmEmbedResponse.Confirmed)
+      .setLabel('Confirm')
+      .setStyle(ButtonStyle.Success);
+    const deny = new ButtonBuilder()
+      .setCustomId(ConfirmEmbedResponse.Denied)
+      .setLabel('Cancel')
+      .setStyle(ButtonStyle.Secondary);
+
+    const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      confirm,
+      deny
+    );
+
+    // send the confirmation
+    const response: InteractionResponse<boolean> | Message =
+      await replyToInteraction(interaction, {
+        embeds: [this.infoEmbed(prompt)],
+        components: [actionRow],
+      });
+
+    // listen for a button interaction
+    try {
+      const buttonInteraction = await response.awaitMessageComponent({
+        filter: i => i.user.id === interaction.member?.user.id,
+        time: timeout * 1000,
+      });
+      // Ephemeral messages can't be deleted using message.delete()
+      if (!interaction.ephemeral) {
+        response.delete();
+      }
+      return buttonInteraction.customId as ConfirmEmbedResponse;
+    } catch {
+      // awaitMessageComponent throws an error when the timeout was reached, so this behavior assumes
+      // that no other errors were thrown
+      response.edit({
+        embeds: [
+          this.errorEmbed(
+            'No interaction was made by the timeout limit, cancelling.'
+          ),
+        ],
+        components: [],
+      });
+      // delete the embed after 15 seconds
+      setTimeout(() => {
+        // Ephemeral messages can't be deleted using message.delete()
+        if (!interaction.ephemeral) {
+          response.delete();
+        }
+      }, 15_000);
+      return ConfirmEmbedResponse.Denied;
+    }
+  },
+};
 
 /**
  * A paginated message, implemented with a row of buttons that flip between various "pages"
@@ -141,7 +283,7 @@ export class PaginatedMessage {
     if (this.payloads === null || this.payloads.length === 0) {
       return {
         embeds: [
-          util.embed.errorEmbed(
+          embed.errorEmbed(
             'Pagination error: No payloads were provided to paginate'
           ),
         ],
@@ -162,7 +304,7 @@ export class PaginatedMessage {
       // Returns an error in place of the actual payload
       return {
         embeds: [
-          util.embed.errorEmbed(
+          embed.errorEmbed(
             'Pagination error: The pagination row is null, payload preparation failed'
           ),
         ],
@@ -194,7 +336,7 @@ export class PaginatedMessage {
     timeout: number
   ) {
     let payload = this.renderCurrentPage();
-    let botResponse = await util.replyToInteraction(interaction, payload);
+    let botResponse = await replyToInteraction(interaction, payload);
 
     // Sets up a listener to listen for control button pushes
     const continueButtonListener = botResponse.createMessageComponentCollector({
@@ -270,4 +412,90 @@ export class PaginatedMessage {
       }
     });
   }
+}
+
+/**
+ * A single input field of a modal
+ */
+interface InputFieldOptions {
+  /** The ID to refer to the input field as */
+  id: string;
+  /** The lavel of the input field */
+  label: string;
+  /** The style to use (Short/Paragraph) */
+  style: TextInputStyle;
+  /** The maximum length of the input */
+  maxLength: number;
+}
+
+/**
+ * The modal generation options
+ */
+interface ModalOptions {
+  /** The ID to refer to the modal as */
+  id: string;
+  /** The title of the modal */
+  title: string;
+  /** The fields of the modal */
+  fields: InputFieldOptions[];
+}
+
+/**
+ * Generates a modal from args
+ * Takes a {@link inputFieldOptions} object as an argument
+ * @returns The finished modal object
+ */
+export function generateModal({id, title, fields}: ModalOptions): ModalBuilder {
+  const modal: ModalBuilder = new ModalBuilder()
+    .setCustomId(id)
+    .setTitle(title);
+
+  const components: RestOrArray<ActionRowBuilder<TextInputBuilder>> = [];
+
+  // Adds all components to the modal
+  for (const field of fields) {
+    const modalComponent: TextInputBuilder = new TextInputBuilder()
+      .setCustomId(field.id)
+      .setLabel(field.label)
+      .setStyle(field.style)
+      .setMaxLength(field.maxLength);
+
+    const actionRow =
+      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
+        modalComponent
+      );
+    components.push(actionRow);
+  }
+  modal.addComponents(components);
+
+  return modal;
+}
+
+/**
+ * Function to create an array of payloads with embeds with fields separated properly
+ * @param fields An array of embed fields
+ * @param embedCallback A callback that has the fieldSet as an arg, use to make a template for every page
+ * @param splitFieldsBy What number to split fields by
+ */
+export function createEmbedFieldPayloads(
+  fields: EmbedField[],
+  embedCallback: (fields: EmbedField[]) => EmbedBuilder,
+  splitFieldsBy: number
+): BaseMessageOptions[] {
+  const payloads: BaseMessageOptions[] = [];
+  const fieldSets: EmbedField[][] = [];
+
+  // Appends sets of fields that are splitFieldsBy long
+  for (let i = 0; i < fields.length; i += splitFieldsBy) {
+    fieldSets.push(fields.slice(i, i + splitFieldsBy));
+  }
+
+  // Finally, create the payloads
+  for (const fieldSet of fieldSets) {
+    payloads.push({
+      embeds: [embedCallback(fieldSet).toJSON()],
+    });
+  }
+
+  return payloads;
 }

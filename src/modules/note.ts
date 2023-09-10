@@ -9,6 +9,7 @@
 
 import type {Collection, Db} from 'mongodb';
 import * as util from '../core/util.js';
+import {getWarns} from './warn.js';
 import type {Snowflake, User} from 'discord.js';
 import {Colors, EmbedBuilder} from 'discord.js';
 
@@ -162,8 +163,6 @@ notes.registerSubModule(
       },
     ],
     async args => {
-      // TODO: Add an early return for non-admin invokers
-
       const userArg: string = args
         .find(arg => arg.name === 'user')!
         .value!.toString();
@@ -247,7 +246,7 @@ const whois = new util.RootModule(
     const userArg: string = args
       .find(arg => arg.name === 'user')!
       .value!.toString();
-    const member = await interaction.guild!.members.fetch(userArg);
+    const member = await interaction.guild!.members.fetch(userArg).catch();
 
     if (member === null) {
       return util.embed.errorEmbed(
@@ -295,6 +294,24 @@ const whois = new util.RootModule(
     }
     fields.push({name: 'Roles', value: roles, inline: true});
 
+    // Handling for warns if the invoker is able to kick members
+    if (interaction.memberPermissions!.has('KickMembers')) {
+      const warnings = await getWarns(member.id);
+
+      for (const warning of warnings) {
+        const author: User | undefined = util.client.users.cache.get(
+          warning.author
+        );
+        fields.push({
+          name: `Warning from ${author?.username ?? warning.author} at ${
+            warning.date
+          }`,
+          value: warning.reason,
+          inline: false,
+        });
+      }
+    }
+
     // Handling for notes
     const record: userRecord | null = await getRecord(member.user);
     let noteCount = 0;
@@ -307,8 +324,9 @@ const whois = new util.RootModule(
         const noteAuthor: User = await util.client.users.fetch(note.addedBy);
 
         fields.push({
-          name: `Note from ${noteAuthor.tag} at ${note.date}`,
+          name: `Note from ${noteAuthor.username} at ${note.date}`,
           value: `*${note.contents}*`,
+          inline: false,
         });
       }
     }

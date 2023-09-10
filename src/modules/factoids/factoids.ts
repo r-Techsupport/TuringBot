@@ -492,7 +492,7 @@ factoid.registerSubModule(
       }
 
       // Converts the JSON contents to a buffer so it can be sent as an attachment
-      const serializedFactoid = JSON.stringify(locatedFactoid.message);
+      const serializedFactoid = JSON.stringify(locatedFactoid.message, null, 2);
       const files = Buffer.from(serializedFactoid);
 
       await util
@@ -659,12 +659,144 @@ trigger.registerSubmodule(
 // Registers the trigger submodule group
 factoid.registerSubModule(trigger);
 
-// TODO: do
 factoid.registerSubModule(
-  new util.SubModule('preview', 'Preview a factoid json without remembering it')
+  new util.SubModule(
+    'preview',
+    'Get a factoid in an ephemeral message',
+    [
+      {
+        type: util.ModuleOptionType.String,
+        name: 'factoid',
+        description: 'The factoid to fetch',
+        required: true,
+        autocomplete: factoidAutocomplete,
+      },
+    ],
+    async (args, interaction) => {
+      // Defers the reply manually and makes it ephemeral
+      await interaction.deferReply({ephemeral: true});
+
+      const factoidName: string = args
+        .find(arg => arg.name === 'factoid')!
+        .value!.toString()!;
+
+      // Gets the factoid
+      const locatedFactoid: Factoid | null = await factoidCache!.get(
+        factoidName
+      );
+
+      if (locatedFactoid === null) {
+        return util.embed.errorEmbed(
+          'Unable to located the factoid specified.'
+        );
+      }
+
+      // Sends the matched factoid
+      await util
+        .replyToInteraction(interaction, locatedFactoid.message)
+        .catch(err => {
+          util.logEvent(
+            util.EventCategory.Error,
+            'factoid',
+            `An error was encountered sending factoid: ${(err as Error).name}`,
+            3
+          );
+        });
+    },
+    // Cannot deferReply since the returned message is ephemeral
+    false
+  )
 );
+
+// TODO: File support, CSS for spaces (or alternative pasting solution), caching
+/*
 factoid.registerSubModule(
-  new util.SubModule('all', 'Generate a list of all factoids as a webpage')
+  new util.SubModule('all',
+  'Generate a list of all factoids as a webpage',
+  [{
+    type: util.ModuleOptionType.Boolean,
+    name: 'file',
+    description: 'If a file should be sent instead of a paste',
+    required: false
+  }],
+  async (args, interaction) => {
+    const sendAsFile =
+    args.find(arg => arg.name === 'file')?.value ?? false;
+
+
+
+    // Pulls the factoids from the DB
+      // Defines the DB structures
+      const db: Db = util.mongo.fetchValue();
+      const factoidCollection: Collection<Factoid> = db.collection(
+        FACTOID_COLLECTION_NAME
+      );
+
+      const factoidList: Factoid[] = await factoidCollection.find().toArray();
+    let formattedFactoids = "";
+
+    for (const factoid of factoidList) {
+      formattedFactoids += `<li><code>${JSON.stringify(factoid.message, null, 2)}<li>`;
+    }
+
+
+    const factoidsInHTML = `
+    <!DOCTYPE html>
+        <html>
+        <body>
+        <h3>Factoids for ${interaction.guild!.name}</h3>
+        ${formattedFactoids}
+        <style>
+        ul {
+            display: table;
+            width: auto;
+        }
+
+        ul li {
+            display: table-row;
+
+        }
+
+        ul li:nth-child(even) {
+            background-color: lightgray;
+        }
+        </style>
+        </body>
+        </html>
+
+    `;
+
+
+
+    const API_URL = factoid.config.pasteApi;
+    const headers = {
+      "Content-Type": "text/plain",
+  };
+
+    const response = await request(API_URL, {
+      method: 'PUT',
+      headers: headers,
+      body: factoidsInHTML,
+    });
+
+    // The responseData is just the URL when text/plain is selected
+    let responseData = '';
+
+    for await (const data of response.body) {
+      responseData += data;
+    }
+
+    // Makes the URL selif - raw html page
+    const filename: string = responseData.split("/").slice(-1)[0];
+    const url: string = responseData.replace(filename, `selif/${filename}`);
+
+
+
+    return util.embed.infoEmbed(url);
+  }
+
+  )
 );
+*/
 
 export default factoid;

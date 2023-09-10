@@ -189,10 +189,12 @@ export class BaseModule {
     command: string,
     helpMessage: string,
     options?: ModuleInputOption[],
-    onCommandExecute?: ModuleCommandFunction
+    onCommandExecute?: ModuleCommandFunction,
+    deferReply = true
   ) {
     this.name = command;
     this.description = helpMessage;
+    this.deferReply = deferReply;
     this.options = options ?? [];
     // the default behavior for this is to do nothing
     if (this.onCommandExecute) {
@@ -211,6 +213,21 @@ export class BaseModule {
   onCommandExecute(functionToCall: ModuleCommandFunction) {
     // This could be used to wrap extra behavior into command execution
     this.executeCommand = functionToCall;
+  }
+
+  /**
+   * Check to see if all the dependencies specified for this particular module are defined
+   */
+  public depsResolved(): boolean {
+    let allResolved = true;
+
+    for (const dependency of this.dependencies) {
+      if (dependency.status !== DependencyStatus.Succeeded) {
+        allResolved = false;
+        break;
+      }
+    }
+    return allResolved;
   }
 
   // TODO: make use of botConfig.editConfigOption() and add a method to enable editing the local config for a module without specifying the absolute path.
@@ -259,6 +276,7 @@ export class RootModule extends BaseModule {
       this.config = botConfig.modules[this.name];
       this.enabled = this.config.enabled;
     } else {
+      this.config = {enabled: false};
       logEvent(
         EventCategory.Error,
         'core',
@@ -318,9 +336,10 @@ export class SubModule extends BaseModule {
     command: string,
     description: string,
     options?: ModuleInputOption[],
-    onCommandExecute?: ModuleCommandFunction
+    onCommandExecute?: ModuleCommandFunction,
+    deferReply = true
   ) {
-    super(command, description, options ?? [], onCommandExecute);
+    super(command, description, options ?? [], onCommandExecute, deferReply);
   }
 
   /**
