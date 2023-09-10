@@ -292,7 +292,7 @@ export async function registerSlashCommandSet(
   const guild = client.guilds.cache.first()!;
   // ship the provided list off to discord to discord
   // https://discordjs.guide/creating-your-bot/command-deployment.html#guild-commands
-  const rest = new REST().setToken(botConfig.authToken);
+  const rest = new REST().setToken(botConfig.secrets.discordAuthToken);
   /** list of slash commands, converted to json, to be sent off to discord */
   const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
   for (const command of commandSet) {
@@ -301,7 +301,8 @@ export async function registerSlashCommandSet(
   // send everything to discord
   // The put method is used to fully refresh all commands in the guild with the current set
   await rest.put(
-    Routes.applicationGuildCommands(botConfig.applicationId, guild.id),
+    // non-null assertion: this code should only be run when the bot is logged in
+    Routes.applicationGuildCommands(client.application!.id, guild.id),
     {
       body: commands,
     }
