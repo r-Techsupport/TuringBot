@@ -7,7 +7,7 @@ A scaleable Discord bot, built as a replacement for https://github.com/r-Techsup
 ## Important documentation
 
 1) Startup environment guides
-- Prod environment setup (TODO)
+- [Deploying to a production environment](./docs/guides/prod_environment.md)
 - [Dev environment setup](./docs/guides/dev_environment.md)
 
 2) Setup guides
