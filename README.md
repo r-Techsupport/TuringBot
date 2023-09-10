@@ -1,5 +1,6 @@
 # TuringBot
 ![CI](https://github.com/zleyyij/TuringBot/actions/workflows/ci.yaml/badge.svg)
+[![CodeFactor](https://www.codefactor.io/repository/github/zleyyij/turingbot/badge/main)](https://www.codefactor.io/repository/github/zleyyij/turingbot/overview/main)
 [![Code Style: Google](https://img.shields.io/badge/code%20style-google-blueviolet.svg)](https://github.com/google/gts)
 
 A scaleable Discord bot, built as a replacement for https://github.com/r-Techsupport/TechSupportBot
