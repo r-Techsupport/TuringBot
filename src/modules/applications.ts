@@ -40,21 +40,6 @@ interface Application {
 const APPLICATION_COLLECTION_NAME = 'applications';
 
 /**
- * Formats the current date to YYYY-MM-DD HH:MM:SS
- * @param date The current date
- */
-function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = (1 + date.getMonth()).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  const hour = date.getHours().toString().padStart(2, '0');
-  const minute = date.getMinutes().toString().padStart(2, '0');
-  const second = date.getSeconds().toString().padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-}
-
-/**
  * Function to get the modal fields from the questions set in the module config
  */
 function getModalFields() {
@@ -170,7 +155,7 @@ const apply = new util.RootModule(
       _id: new ObjectId().toHexString(),
       user: submittedModal.member!.user.id,
       responses: responses,
-      date: formatDate(new Date()),
+      date: util.formatDate(new Date()),
       status: 'Pending',
     };
 
