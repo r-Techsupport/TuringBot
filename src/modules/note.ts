@@ -50,21 +50,6 @@ async function deleteRecord(user: User): Promise<void> {
   await records.deleteOne({user: user.id});
 }
 
-/**
- * Formats the current date to YYYY-MM-DD HH:MM:SS
- * @param date The current date
- */
-function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = (1 + date.getMonth()).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  const hour = date.getHours().toString().padStart(2, '0');
-  const minute = date.getMinutes().toString().padStart(2, '0');
-  const second = date.getSeconds().toString().padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-}
-
 /** The root note command group */
 const notes = new util.RootModule('note', 'Add or delete notes from users', [
   util.mongo,
@@ -105,7 +90,7 @@ notes.registerSubModule(
       const note: Note = {
         contents: noteContents,
         addedBy: interaction.user.id,
-        date: formatDate(new Date()),
+        date: util.formatDate(new Date()),
       };
 
       const db: Db = util.mongo.fetchValue();
@@ -221,7 +206,7 @@ notes.registerSubModule(
         files: [
           {
             attachment: file,
-            name: `notes_for_${user.id}_${formatDate(new Date())}.json`,
+            name: `notes_for_${user.id}_${util.formatDate(new Date())}.json`,
           },
         ],
       });
@@ -270,12 +255,12 @@ const whois = new util.RootModule(
     // Addd info fields
     fields.push({
       name: 'Created at',
-      value: formatDate(member.user.createdAt),
+      value: util.formatDate(member.user.createdAt),
       inline: true,
     });
     fields.push({
       name: 'Joined at',
-      value: formatDate(member.joinedAt!),
+      value: util.formatDate(member.joinedAt!),
       inline: true,
     });
     fields.push({
