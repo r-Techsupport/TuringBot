@@ -1,0 +1,33 @@
+# https://docs.docker.com/compose/networking/
+version: "3.8"
+services:
+  # the dockerfile to build turingbot is located at ../
+  turingbot:
+    container_name: turingbot
+    build: ../
+    # mount the config and secrets
+    volumes:
+      - type: bind
+        source: ../config.jsonc
+        target: /usr/src/turingbot/config.jsonc
+      - type: bind
+        source: ../secrets.jsonc
+        target: /usr/src/turingbot/secrets.jsonc
+      
+    restart: unless-stopped
+    depends_on:
+      - mongo
+  # at some point, i would like to have it be possible for mongodb to be routed in a way that it's accessible when the bot is not running in the docker container, maybe a port fwd
+  mongo:
+    container_name: mongo
+    image: mongo
+    ports:
+      - "27017:27017"    
+    volumes:
+      - mongo:/data/db
+    environment:
+        # change these in production
+         - MONGO_INITDB_ROOT_PASSWORD=root
+         - MONGO_INITDB_ROOT_USERNAME=root
+volumes:
+  mongo:
