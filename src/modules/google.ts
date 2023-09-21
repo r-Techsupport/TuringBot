@@ -103,8 +103,8 @@ googleModule.registerSubModule(
     ],
     async (args, interaction) => {
       // Key checks
-      const API_KEY: string | undefined = googleModule.config.ApiKey;
-      const CSE_ID: string | undefined = googleModule.config.CseId;
+      const API_KEY: string | undefined = util.botConfig.secrets.google.apiKey;
+      const CSE_ID: string | undefined = util.botConfig.secrets.google.cseId;
 
       if (
         [undefined, ''].includes(API_KEY) ||
@@ -160,9 +160,9 @@ const youtube = new util.RootModule(
     },
   ],
   async (args, interaction) => {
-    const API_KEY: string | undefined = googleModule.config.ApiKey;
+    const API_KEY: string | undefined = util.botConfig.secrets.google.apiKey;
 
-    if ([undefined, ''].includes(API_KEY)) {
+    if ([undefined, '', 'YOUR_GOOGLE_API_KEY_HERE'].includes(API_KEY)) {
       util.logEvent(
         util.EventCategory.Warning,
         'google',
