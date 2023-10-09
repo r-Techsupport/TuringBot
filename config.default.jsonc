@@ -76,9 +76,7 @@
       "roleIdOnApprove": ""
     },
     "google": {
-      "enabled": true,
-      "ApiKey": "",
-      "CseId": ""
+      "enabled": true
     },
     // API key is shared with google
     "youtube": {
