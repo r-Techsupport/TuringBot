@@ -28,12 +28,6 @@ import {
   BaseMessageOptions,
   Message,
   InteractionResponse,
-  TextInputBuilder,
-  ModalBuilder,
-  TextInputStyle,
-  ActionRowBuilder,
-  RestOrArray,
-  ModalActionRowComponentBuilder,
 } from 'discord.js';
 import {client} from './api.js';
 import {botConfig} from './config.js';
@@ -44,6 +38,7 @@ import {
   ModuleInputOption,
   ModuleOptionType,
 } from './modules.js';
+import {permissionConfigToBitFlag} from './permissions.js';
 
 type SlashCommandOption =
   | SlashCommandAttachmentOption
@@ -96,10 +91,26 @@ export async function getUnregisteredSlashCommands(): Promise<RootModule[]> {
 export async function generateSlashCommandForModule(
   module: RootModule
 ): Promise<SlashCommandBuilder> {
+  // calculate the permissions configured for the slash command, so that it's hidden for those who don't have
+  // execution permission
+  // https://discord.com/developers/docs/topics/permissions
+  // 1 << 31 is the flag for "using bot commands"
+  // i would have used zero, but the command is entirely disabled if 0
+  let permissionBitFlags = BigInt('0x0000000080000000');
+  const requiredPermissions =
+    (module.config.permissions ?? {requiredPermissions: []})
+      .requiredPermissions ?? [];
+  for (const permission of requiredPermissions) {
+    // perform a binary OR operation to combine the bitflags together
+    // https://discordjs.guide/slash-commands/permissions.html#member-permissions
+    permissionBitFlags |= permissionConfigToBitFlag(permission);
+  }
+
   // translate the module to slash command form
   const slashCommand = new SlashCommandBuilder()
     .setName(module.name)
-    .setDescription(module.description);
+    .setDescription(module.description)
+    .setDefaultMemberPermissions(permissionBitFlags);
 
   // if the module has submodules, than register those as subcommands
   // https://discord.com/developers/docs/interactions/application-commands#subcommands-and-subcommand-groups
@@ -281,7 +292,7 @@ export async function registerSlashCommandSet(
   const guild = client.guilds.cache.first()!;
   // ship the provided list off to discord to discord
   // https://discordjs.guide/creating-your-bot/command-deployment.html#guild-commands
-  const rest = new REST().setToken(botConfig.authToken);
+  const rest = new REST().setToken(botConfig.secrets.discordAuthToken);
   /** list of slash commands, converted to json, to be sent off to discord */
   const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
   for (const command of commandSet) {
@@ -290,7 +301,8 @@ export async function registerSlashCommandSet(
   // send everything to discord
   // The put method is used to fully refresh all commands in the guild with the current set
   await rest.put(
-    Routes.applicationGuildCommands(botConfig.applicationId, guild.id),
+    // non-null assertion: this code should only be run when the bot is logged in
+    Routes.applicationGuildCommands(client.application!.id, guild.id),
     {
       body: commands,
     }
@@ -319,61 +331,4 @@ export async function replyToInteraction(
   }
 
   return await interaction.reply(payload);
-}
-
-/**
- * A single input field of a modal
- * @param id The ID to refer to the input field as
- * @param label The label of the input field
- * @param style The style to use (Short or Paragraph)
- * @param maxLength The maximum input length
- */
-interface inputFieldOptions {
-  id: string;
-  label: string;
-  style: TextInputStyle;
-  maxLength: number;
-}
-
-/**
- * The modal generation options
- * @param id The ID to refer to the modal as
- * @param title The title of the modal
- * @param fields An array of inputFieldOptions
- */
-interface modalOptions {
-  id: string;
-  title: string;
-  fields: inputFieldOptions[];
-}
-
-/**
- * Generates a modal from args
- * Takes a {@link inputFieldOptions} object as an argument
- * @returns The finished modal object
- */
-export function generateModal({id, title, fields}: modalOptions): ModalBuilder {
-  const modal: ModalBuilder = new ModalBuilder()
-    .setCustomId(id)
-    .setTitle(title);
-
-  const components: RestOrArray<ActionRowBuilder<TextInputBuilder>> = [];
-
-  // Adds all components to the modal
-  for (const field of fields) {
-    const modalComponent: TextInputBuilder = new TextInputBuilder()
-      .setCustomId(field.id)
-      .setLabel(field.label)
-      .setStyle(field.style)
-      .setMaxLength(field.maxLength);
-
-    const actionRow =
-      new ActionRowBuilder<ModalActionRowComponentBuilder>().addComponents(
-        modalComponent
-      );
-    components.push(actionRow);
-  }
-  modal.addComponents(components);
-
-  return modal;
 }

@@ -7,11 +7,11 @@ import {readFileSync} from 'node:fs';
 import {parse as parseJSONC, modify, applyEdits, JSONPath} from 'jsonc-parser';
 import {EventCategory, logEvent} from './logger.js';
 
-// TODO: write out a large interface for the config
 /**
  * Path of the config on the filesystem relative to where node is being run from
  */
 const CONFIG_LOCATION = './config.jsonc';
+const SECRETS_LOCATION = './secrets.jsonc';
 
 /**
  * This is an object mirror of `config.jsonc`. You can load the config from the filesystem with `readConfigFromFileSystem()`.
@@ -25,12 +25,13 @@ export const botConfig: any = {
    */
   readConfigFromFileSystem() {
     // read the config from the filesystem
-    // TODO: only do this if the config hasn't been set already
     try {
       Object.assign(
         botConfig,
         parseJSONC(readFileSync(CONFIG_LOCATION, 'utf-8'))
       );
+      // read `secrets.jsonc` into the config, under `.secrets`
+      botConfig.secrets = parseJSONC(readFileSync(SECRETS_LOCATION, 'utf-8'));
     } catch (err) {
       throw new Error(
         'Unable to locate or process config.jsonc, are you sure it exists?'

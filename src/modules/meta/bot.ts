@@ -9,8 +9,13 @@ import {Colors, EmbedBuilder, EmbedField} from 'discord.js';
 import process from 'node:process';
 import osutils from 'node-os-utils';
 import * as util from '../../core/util.js';
+import {spawn} from 'node:child_process';
 
-/** Function that returns an array of the latest 5 ticks' latencies */
+/**
+ * Function that returns an array of the latest 5 event loop tick latencies.
+ *
+ * @see https://nodejs.dev/en/learn/understanding-processnexttick/
+ */
 async function getTickLatency(): Promise<number[]> {
   return new Promise<number[]>(resolve => {
     let iteration = 0;
@@ -130,6 +135,37 @@ bot.registerSubModule(
       embed.setFields(fields);
 
       await util.replyToInteraction(interaction, {embeds: [embed]});
+    }
+  )
+);
+
+// restart the currently running process
+bot.registerSubModule(
+  new util.SubModule(
+    'restart',
+    "Fully restart the bot's operating system process",
+    [],
+    async (_, interaction) => {
+      await util.replyToInteraction(interaction, {
+        embeds: [util.embed.infoEmbed('Restarting.')],
+      });
+      util.logEvent(util.EventCategory.Info, 'bot', 'Restarting.', 2);
+      // adapted from https://thekenyandev.com/blog/how-to-restart-a-node-js-app-programmatically/
+      // when the process closes, start a new one
+      process.on('exit', () => {
+        // start a new process
+        // the first argument to a process is the binary called, the next are the arguments to the binary
+        // share the current working directory and stdio
+        spawn(process.argv.shift()!, process.argv, {
+          cwd: process.cwd(),
+          detached: true,
+          stdio: 'inherit',
+        });
+      });
+      // kill the process
+      // eslint seems to think that this is happening to throw an error, but we're just rebooting
+      // eslint-disable-next-line
+      process.exit();
     }
   )
 );

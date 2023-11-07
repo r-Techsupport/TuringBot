@@ -9,6 +9,7 @@
 
 import type {Collection, Db} from 'mongodb';
 import * as util from '../core/util.js';
+import {getWarns} from './warn.js';
 import type {Snowflake, User} from 'discord.js';
 import {Colors, EmbedBuilder} from 'discord.js';
 
@@ -47,21 +48,6 @@ async function deleteRecord(user: User): Promise<void> {
   const records: Collection<userRecord> = db.collection(NOTE_COLLECTION_NAME);
 
   await records.deleteOne({user: user.id});
-}
-
-/**
- * Formats the current date to YYYY-MM-DD HH:MM:SS
- * @param date The current date
- */
-function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = (1 + date.getMonth()).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  const hour = date.getHours().toString().padStart(2, '0');
-  const minute = date.getMinutes().toString().padStart(2, '0');
-  const second = date.getSeconds().toString().padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
 
 /** The root note command group */
@@ -104,7 +90,7 @@ notes.registerSubModule(
       const note: Note = {
         contents: noteContents,
         addedBy: interaction.user.id,
-        date: formatDate(new Date()),
+        date: util.formatDate(new Date()),
       };
 
       const db: Db = util.mongo.fetchValue();
@@ -162,8 +148,6 @@ notes.registerSubModule(
       },
     ],
     async args => {
-      // TODO: Add an early return for non-admin invokers
-
       const userArg: string = args
         .find(arg => arg.name === 'user')!
         .value!.toString();
@@ -222,7 +206,7 @@ notes.registerSubModule(
         files: [
           {
             attachment: file,
-            name: `notes_for_${user.id}_${formatDate(new Date())}.json`,
+            name: `notes_for_${user.id}_${util.formatDate(new Date())}.json`,
           },
         ],
       });
@@ -247,7 +231,7 @@ const whois = new util.RootModule(
     const userArg: string = args
       .find(arg => arg.name === 'user')!
       .value!.toString();
-    const member = await interaction.guild!.members.fetch(userArg);
+    const member = await interaction.guild!.members.fetch(userArg).catch();
 
     if (member === null) {
       return util.embed.errorEmbed(
@@ -271,12 +255,12 @@ const whois = new util.RootModule(
     // Addd info fields
     fields.push({
       name: 'Created at',
-      value: formatDate(member.user.createdAt),
+      value: util.formatDate(member.user.createdAt),
       inline: true,
     });
     fields.push({
       name: 'Joined at',
-      value: formatDate(member.joinedAt!),
+      value: util.formatDate(member.joinedAt!),
       inline: true,
     });
     fields.push({
@@ -295,6 +279,24 @@ const whois = new util.RootModule(
     }
     fields.push({name: 'Roles', value: roles, inline: true});
 
+    // Handling for warns if the invoker is able to kick members
+    if (interaction.memberPermissions!.has('KickMembers')) {
+      const warnings = await getWarns(member.id);
+
+      for (const warning of warnings) {
+        const author: User | undefined = util.client.users.cache.get(
+          warning.author
+        );
+        fields.push({
+          name: `Warning from ${author?.username ?? warning.author} at ${
+            warning.date
+          }`,
+          value: warning.reason,
+          inline: false,
+        });
+      }
+    }
+
     // Handling for notes
     const record: userRecord | null = await getRecord(member.user);
     let noteCount = 0;
@@ -307,8 +309,9 @@ const whois = new util.RootModule(
         const noteAuthor: User = await util.client.users.fetch(note.addedBy);
 
         fields.push({
-          name: `Note from ${noteAuthor.tag} at ${note.date}`,
+          name: `Note from ${noteAuthor.username} at ${note.date}`,
           value: `*${note.contents}*`,
+          inline: false,
         });
       }
     }

@@ -360,12 +360,12 @@ export function checkInteractionAgainstPermissionConfig(
 
 // someone should clean this up if they feel so inclined, i think you could nest a lot less deeply
 /**
- * @param interaction The interaction to check against the context block
- * @param contextBlock The block to check when comparing against the interaction
- * @returns A context block, where any key that's set is the key the check caught,
+ * Returns a context block, where any key that's set is the key the check caught,
  * and the value is the same as the context block passed in the function declaration. So if you
  * passed an interaction where the user id was "foo", and the {@link ContextBlock} had "foo" in the list of users,
  * the returned value would look like `{ users: ['foo'] }`
+ * @param interaction The interaction to check against the context block
+ * @param contextBlock The block to check when comparing against the interaction.
  */
 function checkContextBlockForInteraction(
   interaction: ChatInputCommandInteraction,
@@ -414,7 +414,9 @@ function checkContextBlockForInteraction(
 }
 
 /** Convert an {@link ManagementPermission} to be of type {@link PermissionsBitFlag} */
-function permissionConfigToBitFlag(permission: ManagementPermission | string) {
+export function permissionConfigToBitFlag(
+  permission: ManagementPermission | string
+) {
   // have fun!
   switch (permission) {
     case 'timeout':

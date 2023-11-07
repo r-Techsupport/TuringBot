@@ -1,0 +1,1 @@
+This directory contains Architectural Decision Records. These document major changes, proposals, and implementation details. Please see [ADR 0](./ADR_00.md) for more details.

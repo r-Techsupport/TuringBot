@@ -34,7 +34,6 @@ function logEvent(
   description: string,
   verbosity: 1 | 2 | 3
 ) {
-  console.log('logging message');
   parentPort?.postMessage({
     type: 'log',
     content: {

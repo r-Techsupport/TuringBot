@@ -1,25 +1,10 @@
 {
-  /**
-   * https://discord.com/developers/docs/topics/oauth2
-   * https://discord.com/developers
-   * create new application -> bot -> new bot user -> oath2 -> bot -> administrator -> copy link
-   * rememember to set your bot intents
-   */
-  "authToken": "your-auth-token",
-  "applicationId": "",
-  // database configuration
-  "mongodb": {
-    // These are filled out using the settings from `k8s/dev.yaml`, but should probably
-    // be set to something different in prod
-    // If using Atlas, set the protocol to mongodb+srv://
-    // Otherwise set it to mongodb://
-    "protocol": "mongodb://",
-    "address": "mongodb.default.svc.cluster.local",
-    "username": "root",
-    "password": "root"
-  },
   // Specifically event logging
   "logging": {
+    // restrict this command to people with the `administrator` perm
+    "permissions": {
+      "requiredPerms": ["administrator"]
+    },
     /**
      * Different levels of verbose logging.
      *
@@ -41,65 +26,15 @@
       "userIds": [""],
       "verboseLevel": 1
     },
-
     "loggingChannel": {
       "loggingChannelId": "",
       "verboseLevel": 3
     }
   },
 
-  "testing": {
-    // The user ID for the bot test user
-    "userID": ""
-  },
-
   // The key for each module should match the one specified in the root module initialization
   // if the `enabled` key is missing, the extension will be disabled by default, and a warning issued
-  /*
-  Here's an example permissions config and boilerplate:
-  You can use this by setting the `permissions` key of each extension
-  to an object like this. It's not required for any of these keys to be set.
-  ```
-  "permissions": {
-    // a list of all possible permission restrictions
-    "requiredPerms": ["kick", "ban", "timeout", "manage_roles", "administrator"],
-    // **ALL IDs MUST BE STRINGS (not numbers)**
-    "allowed": {
-        // list of user IDs
-        "users": [],
-        // list of role IDs (or names? needs to be discussed)
-        "roles": [],
-        // list of channel IDs
-        "channels": [],
-        // a list of category IDs
-        "categories": [],
-    },
-    "denied": {
-        // a list of user IDs
-        "users": [],
-        // a list of role IDs
-        "roles": [],
-        // a list of channel IDs
-        "channels": [],
-        // a list of category IDs.
-        "categories": [],
-    }
-    // if you also want to restrict permissions per submodule, it can be done as below
-    "submodulePermissions": {
-      // each key in this object is the name of a submodule, so for a command like `/factoid all`, 
-      // you could restrict it with a key named `"all"`.
-      "<submodule_name>": {
-        // the same structure can be nested
-        "requiredPerms": [],
-        // you can also nest submodulePermissions to restrict a command 3 layers deep, like "/factoid all html"
-        "submodulePermissions: {
-          "<submodule_name>": {}
-        }
-      }
-    }
-  }
-    ```
-  */
+  // permissions are explained in the production environment doc
   "modules": {
     "logging": {
       "enabled": true,
@@ -110,14 +45,14 @@
       // communication channel on the left, logging channel on the right
       "channelMap": {
     },
-      // this map contains a list of channels that will not be logged. also populated by `logging populate`
-      "channelBlacklist": [
-    ]
+      // this array contains a list of channels that will not be logged. also populated by `logging populate`
+      "channelBlacklist": []
     },
     "factoid": {
       "enabled": true,
       // a list of characters that can be used as a prefix to trigger a factoid
-      "prefixes": ["?"]
+      "prefixes": ["?"],
+      "pasteApi": ""
     },
     "note": {
       "enabled": true
@@ -140,25 +75,40 @@
       "applyRoleOnApprove": false,
       "roleIdOnApprove": ""
     },
-  "google": {
-    "enabled": true,
-    "ApiKey": "",
-    "CseId": ""
-  },
-  // API key is shared with google
-  "youtube": {
-    "enabled": true
-  },
-  "bot": {
-    "enabled": true
-  },
-  "autopaste": {
-    "enabled": true,
-    // Make sure the ids are all strings, not numbers
-    "immuneRoleIds": [],
-    "maxLength": 100,
-    "pasteFooterContent": "",
-    "pasteApi": ""
+    "google": {
+      "enabled": true,
+      "ApiKey": "",
+      "CseId": ""
+    },
+    // API key is shared with google
+    "youtube": {
+      "enabled": true
+    },
+    "bot": {
+      "enabled": true
+    },
+    "autopaste": {
+      "enabled": true,
+      // Make sure the ids are all strings, not numbers
+      "immuneRoleIds": [],
+      "maxLength": 100,
+      "pasteFooterContent": "",
+      "pasteApi": ""
+    },
+    "filter": {
+      "enabled": true,
+      "exemptRoles": []
+    },
+    "warn": {
+      "enabled": true,
+      "maxWarns": 3
+    },
+    "warns": {
+      "enabled": true
+    },
+    "unwarn": {
+      "enabled": true
+
   },
   "duck": {
     "enabled": true,

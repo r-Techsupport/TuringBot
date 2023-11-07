@@ -6,8 +6,12 @@ import {MongoClient, ServerApiVersion} from 'mongodb';
 import {botConfig} from './config.js';
 import {Dependency} from './modules.js';
 
+/**
+ * A connection to MongoDB, as a Dependency
+ * @type Db
+ */
 export const mongo = new Dependency('MongoDB', async () => {
-  const mongoConfig = botConfig.mongodb;
+  const mongoConfig = botConfig.secrets.mongodb;
   // https://www.mongodb.com/docs/manual/reference/connection-string/
   const connectionString =
     `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +

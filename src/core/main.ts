@@ -1,6 +1,5 @@
 import {readdirSync, Dirent} from 'fs';
 import {
-  APIEmbedField,
   Events,
   APIEmbed,
   ChatInputCommandInteraction,
@@ -13,16 +12,21 @@ import {DependencyStatus, RootModule, SubModule, modules} from './modules.js';
 import {client} from './api.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
-import {embed} from './embed.js';
+import {embed} from './ui.js';
 import {
   generateSlashCommandForModule,
   registerSlashCommandSet,
   replyToInteraction,
 } from './slash_commands.js';
 import {checkInteractionAgainstPermissionConfig} from './permissions.js';
-
 // load the config from config.default.jsonc
 botConfig.readConfigFromFileSystem();
+
+// stuff to do when the bot stops
+process.on('exit', () => {
+  // close the discord API websocket connection
+  client.destroy();
+});
 
 logEvent(EventCategory.Info, 'core', 'Starting...', 2);
 
@@ -43,9 +47,12 @@ client.once(Events.ClientReady, async () => {
   await importModules();
   const newSlashCommands = [];
   for (const module of modules) {
-    newSlashCommands.push(generateSlashCommandForModule(module));
+    // Only register the slash commands if the module is enabled
+    if (module.config.enabled) {
+      newSlashCommands.push(generateSlashCommandForModule(module));
+    }
   }
-  // TODO: unregister slash commands if disabled, and detect any changes to slash commands
+
   await registerSlashCommandSet(await Promise.all(newSlashCommands));
   await initializeModules();
   listenForSlashCommands();
@@ -81,6 +88,12 @@ client.on(Events.InteractionCreate, async interaction => {
   // needs to be resolved once before, then executed
   const module: RootModule | SubModule =
     resolveModule(commandPath).foundModule!;
+
+  // The module isn't done initializing yet, don't autocomplete
+  if (!module.depsResolved()) {
+    return;
+  }
+
   // find the option that's currently getting autocompleted
   const option = module.options.find(option => option.name === input.name);
   // this should never be an issue, but just in case
@@ -93,7 +106,7 @@ client.on(Events.InteractionCreate, async interaction => {
 });
 
 // Login to discord
-client.login(botConfig.authToken);
+client.login(botConfig.secrets.discordAuthToken);
 
 /**
  * This function imports the default export from the file specified, and pushes each module to
@@ -104,6 +117,18 @@ async function importModulesFromFile(path: string): Promise<void> {
   // get the *default* export from each file and add it to the array of modules
   // dynamic imports import relative to the path of the file being run
   const fileExport = await import(path);
+
+  if (fileExport.default === undefined) {
+    const fileName = path.split('/').slice(-1);
+    logEvent(
+      EventCategory.Warning,
+      'core',
+      `File '${fileName}' has no module exports, skipping it`,
+      1
+    );
+    return;
+  }
+
   // to allow multiple module exports from the same file, if they exported an array, then iterate over it
   if (Array.isArray(fileExport.default)) {
     for (const module of fileExport.default) {
@@ -136,7 +161,16 @@ function listenForSlashCommands() {
       commandPath.push(subcommand);
     }
     const resolutionResult = resolveModule(commandPath);
+    // if a module was found
     if (resolutionResult.foundModule !== null) {
+      if (resolutionResult.foundModule.config.enabled !== true) {
+        replyToInteraction(interaction, {
+          embeds: [embed.errorEmbed('This command is disabled.')],
+          ephemeral: true,
+        });
+        return;
+      }
+
       // validate permissions
       // if a permission config was not defined, treat it as empty
       const permissionConfig =
@@ -186,9 +220,11 @@ function listenForSlashCommands() {
                 deniedReasons.join('\n- ')
             ),
           ],
+          ephemeral: true,
         });
         return;
       }
+
       executeModule(resolutionResult.foundModule, interaction);
     }
   });
@@ -283,6 +319,29 @@ export function resolveModule(tokens: string[]): ModuleResolutionResult {
   };
 }
 
+/** Make sure all dependencies for this module were successfully resolved before executing
+ *
+ * @returns Whether all dependencies were succesfully resolved
+ */
+async function validateDependencies(
+  module: RootModule | SubModule,
+  interaction: ChatInputCommandInteraction
+): Promise<boolean> {
+  for (const dep of module.dependencies) {
+    if (dep.status === DependencyStatus.Failed) {
+      void replyToInteraction(interaction, {
+        embeds: [
+          embed.errorEmbed(
+            `Unable to execute command because resolution failed for dependency \`${dep.name}\``
+          ),
+        ],
+      });
+      return false;
+    }
+  }
+  return true;
+}
+
 /** Resolve all dependencies for a module, and then execute it, responding to the user with an error if needed */
 async function executeModule(
   module: RootModule | SubModule,
@@ -293,21 +352,13 @@ async function executeModule(
     await interaction.deferReply();
   }
 
-  // TODO: move this to a separate function
   // no submodules, it's safe to execute the command and return
-  // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
-  for (const dep of module.dependencies) {
-    if (dep.status === DependencyStatus.Failed) {
-      void replyToInteraction(interaction, {
-        embeds: [
-          embed.errorEmbed(
-            `Unable to execute command because resolution failed for dependency "${dep.name}"`
-          ),
-        ],
-      });
-      return;
-    }
+
+  // First make sure that all dependencies were succesfully validated
+  if (!(await validateDependencies(module, interaction))) {
+    return;
   }
+  // first iterate over all dependencies and resolve them. if resolution fails, then return an error message
 
   // next figure out where the correct options are located, to pass to the module
   // could be considered for minor optimizations
@@ -365,38 +416,6 @@ async function executeModule(
           );
         });
     });
-}
-
-/**
- * Generate an embed that contains a neatly formatted help message for the specified module,
- * telling the user they didn't use that command correctly.
- * @param mod The module to generate documentation for. This function assumes that this module has subcommands
- * @param priorCommands If specified, this will format the help message to make the command include these.
- * So if the user typed `foo bar baz`, and you want to generate a help message, you can make help strings
- * include the full command
- * @deprecated I don't think this is needed anymore with the slash command migration
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function generateHelpMessageForModule(
-  mod: SubModule | RootModule,
-  priorCommands = ''
-): APIEmbed {
-  // make a list of fields to use  based off of commands and help strings
-  // TODO: possibly make it exclude the subcommands bit if there are none, or change it to indicate
-  // that it's a subcommand
-  const helpFields: APIEmbedField[] = [];
-  for (const submod of mod.submodules) {
-    helpFields.push({
-      name: `\`${priorCommands} ${submod.name}\``,
-      value: `${submod.description} \n(${submod.submodules.length} subcommands)`,
-    });
-  }
-
-  return {
-    title: 'Invalid command usage. Subcommands for current command:',
-    fields: helpFields,
-    color: 0x2e8eea,
-  };
 }
 
 /**

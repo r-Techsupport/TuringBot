@@ -49,11 +49,10 @@ channelLogging.onInitialize(async () => {
   const worker = new Worker(workerPath, {
     workerData: {
       config: channelLogging.config,
-      authToken: util.botConfig.authToken,
+      authToken: util.botConfig.secrets.discordAuthToken,
     },
   });
   worker.on('message', (message: WorkerMessage) => {
-    console.log('recieved worker message:', message);
     if (message.type === 'log') {
       util.logEvent(
         message.content!.category,
