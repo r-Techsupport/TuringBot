@@ -12,11 +12,27 @@ import {Dependency} from './modules.js';
  */
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.secrets.mongodb;
-  // https://www.mongodb.com/docs/manual/reference/connection-string/
-  const connectionString =
-    `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
-    `@${mongoConfig.address}:27017`;
 
+  let localDB = `${mongoConfig.localDB}`
+  const test : boolean = localDB.toLowerCase() === 'true'
+
+  if (test) {
+    // https://www.mongodb.com/docs/manual/reference/connection-string/
+    const connectionString =
+      `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
+    `@${mongoConfig.address}:27017`;
+  } else {
+    // https://www.mongodb.com/docs/manual/reference/connection-string/
+    const connectionString =
+      `${mongoConfig.protocol}` +
+      `${mongoConfig.address}:27017`;
+  };
+
+  //TODO: remove this
+  console.log(connectionString)
+  console.log(`${mongoConfig.localDB}`)
+  console.log(test)
+  
   // https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/connect/#std-label-node-connect-to-mongodb
   const mongoClient = new MongoClient(connectionString, {
     serverApi: {
@@ -31,5 +47,5 @@ export const mongo = new Dependency('MongoDB', async () => {
     throw err;
   });
 
-  return mongoClient.db('turingbot');
+  return mongoClient.db(`${mongoConfig.dbName}`);
 });
