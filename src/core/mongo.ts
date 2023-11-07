@@ -13,24 +13,21 @@ import {Dependency} from './modules.js';
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.secrets.mongodb;
 
-  let connectionString = "placeholder value"
-  if (`${mongoConfig.bypassAuth}`) {
+  let connectionString = "temp value"
+  if (mongoConfig.username === "") {
+    // https://www.mongodb.com/docs/manual/reference/connection-string/
     connectionString =
       `${mongoConfig.protocol}` +
       `${mongoConfig.address}:27017`;
-  }
-
-  if (!mongoConfig.bypassAuth) {
+  } else {
     // https://www.mongodb.com/docs/manual/reference/connection-string/
     connectionString =
       `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
-    `@${mongoConfig.address}:27017`;
+      `@${mongoConfig.address}:27017`;
   }
 
-  if (typeof mongoConfig.bypassAuth !== 'boolean') {
-    throw new Error("bypassAuth is not a boolean")
-  }
-  
+  console.log(connectionString)
+
   // https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/connect/#std-label-node-connect-to-mongodb
   const mongoClient = new MongoClient(connectionString, {
     serverApi: {
@@ -45,5 +42,5 @@ export const mongo = new Dependency('MongoDB', async () => {
     throw err;
   });
 
-  return mongoClient.db(`${mongoConfig.dbName}`);
+  return mongoClient.db('turingbot');
 });
