@@ -13,24 +13,24 @@ import {Dependency} from './modules.js';
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.secrets.mongodb;
 
-  let bypassAuth = `${mongoConfig.bypassAuth}`
-  const test : boolean = bypassAuth.toLowerCase() === 'true'
-
-  if (test) {
-    // https://www.mongodb.com/docs/manual/reference/connection-string/
-    const connectionString =
-      `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
-    `@${mongoConfig.address}:27017`;
-  } else {
-    const connectionString =
+  let connectionString = "placeholder value"
+  if (`${mongoConfig.bypassAuth}`) {
+    connectionString =
       `${mongoConfig.protocol}` +
       `${mongoConfig.address}:27017`;
-  };
+  }
+
+  if (!`${mongoConfig.bypassAuth}`) {
+    // https://www.mongodb.com/docs/manual/reference/connection-string/
+    connectionString =
+      `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
+    `@${mongoConfig.address}:27017`;
+  } 
 
   //TODO: remove this
-  console.log(connectionString)
-  console.log(`${mongoConfig.bypassAuth}`)
-  console.log(test)
+  console.log('connectionString: '+connectionString)
+  console.log('bypassAuth: '+`${mongoConfig.bypassAuth}`)
+  console.log('bypassAuth Type: '+typeof mongoConfig.bypassAuth);
   
   // https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/connect/#std-label-node-connect-to-mongodb
   const mongoClient = new MongoClient(connectionString, {
