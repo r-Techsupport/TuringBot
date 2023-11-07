@@ -13,9 +13,8 @@ import {Dependency} from './modules.js';
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.secrets.mongodb;
 
-  
   let connectionString: string | undefined;
-  // Allows for empty authentication fields without erroring 
+  // Allows for empty authentication fields without erroring
   if (mongoConfig.username === '' || mongoConfig.password === '') {
     // https://www.mongodb.com/docs/manual/reference/connection-string/
     connectionString =
