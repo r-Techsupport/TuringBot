@@ -13,7 +13,8 @@ import {Dependency} from './modules.js';
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.secrets.mongodb;
 
-  let connectionString = 'temp value';
+  
+  let connectionString: string | undefined
   if (mongoConfig.username === '' || mongoConfig.password === '') {
     // https://www.mongodb.com/docs/manual/reference/connection-string/
     connectionString =
