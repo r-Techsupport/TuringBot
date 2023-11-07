@@ -30,11 +30,6 @@ export const mongo = new Dependency('MongoDB', async () => {
   if (typeof mongoConfig.bypassAuth !== 'boolean') {
     throw new Error("bypassAuth is not a boolean")
   }
-
-  //TODO: remove this
-  console.log('connectionString: '+connectionString)
-  console.log('bypassAuth: '+`${mongoConfig.bypassAuth}`)
-  console.log('bypassAuth Type: '+typeof mongoConfig.bypassAuth);
   
   // https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/connect/#std-label-node-connect-to-mongodb
   const mongoClient = new MongoClient(connectionString, {
