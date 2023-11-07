@@ -9,6 +9,7 @@ import {readFileSync} from 'node:fs';
 import * as util from '../../core/util.js';
 import {
   APIEmbedField,
+  BaseMessageOptions,
   Channel,
   Colors,
   EmbedBuilder,
@@ -35,7 +36,7 @@ interface DuckUser {
 /** Interface used to store users who missed a duck interaction, important
  * when people are admin and can't be timed out.
  * Values:
- * User id: Unix timestamp of the miss delays
+ * User id: Unix timestamp of the end of the miss delay
  */
 interface MissTimeoutMap {
   [user: Snowflake]: number;
@@ -85,17 +86,17 @@ const GOT_AWAY_EMBED: EmbedBuilder = new EmbedBuilder()
 
 // -- Helper functions --
 
-/** Function to log a config error, done to save some lines
+/** Function to log a config error, done to save some lines in manual config verification
  * @param message The message to send with the warning
  */
 function configFail(message: string) {
   util.logEvent(util.EventCategory.Warning, 'duck', message, 1);
 }
 
-/** Function to get a random delay from the config
- * @returns A random delay in seconds between maximumSpawnTime and minimumSpawnTime
+/** Function to get a random spawn delay from the config
+ * @returns A random delay in seconds between minimumSpawnTime and maximumSpawnTime
  */
-function getRandomDelay(): number {
+function getSpawnDelay(): number {
   // Non null assertion - This is only called when the values aren't undefined
   return (
     Math.random() * (maximumSpawnTime! - minimumSpawnTime!) + minimumSpawnTime!
@@ -336,7 +337,9 @@ async function miss(message: Message): Promise<boolean> {
   return true;
 }
 
-/** Function to send a duck and listen for a response */
+/** Function to send a duck and listen for a response
+ * @param channel The channel to summon the duck in
+ */
 async function summonDuck(channel: TextChannel): Promise<void> {
   const duckMessage = await channel.send({embeds: [DUCK_EMBED]});
   const duckCollector = channel.createMessageCollector({
@@ -425,13 +428,14 @@ async function summonDuck(channel: TextChannel): Promise<void> {
     // Restarts the duck loop with a random value
     setTimeout(async () => {
       void (await summonDuck(channel));
-    }, getRandomDelay() * 1_000);
+    }, getSpawnDelay() * 1_000);
     return;
   });
 }
 
 duck.onInitialize(async () => {
   // Verifies all config values are set (When not set, they are undefined)
+  // This should get replaced by config verification once it is implemented
   if (
     typeof minimumSpawnTime !== 'number' ||
     typeof maximumSpawnTime !== 'number' ||
@@ -480,7 +484,7 @@ duck.onInitialize(async () => {
   for (const channel of channels) {
     setTimeout(async () => {
       void (await summonDuck(channel));
-    }, getRandomDelay() * 1000);
+    }, getSpawnDelay() * 1000);
   }
 });
 
@@ -499,12 +503,11 @@ duck.registerSubModule(
       },
     ],
     async (args, interaction) => {
-      let user: User;
-
       const userName: string | undefined = args
         .find(arg => arg.name === 'user')
         ?.value?.toString();
 
+      let user: User;
       user = interaction.user!;
       if (userName !== undefined) {
         user = util.client.users.cache.get(userName)!;
@@ -606,13 +609,13 @@ duck.registerSubModule(
     async (_, interaction) => {
       const entries: DuckUser[] = await getBefriendedRecords();
 
-      if (entries === null) {
+      if (entries.length === 0) {
         return util.embed.errorEmbed('Noone has befriended a duck yet!');
       }
 
       // Gets the payloads for the pagination
       let fieldNumber = 0;
-      const payloads = [];
+      const payloads: BaseMessageOptions[] = [];
 
       // The description has to be set to something, the speed record seems like the best choice
       // Non-null assertion - people have befriended ducks, there is a record
@@ -644,11 +647,11 @@ duck.registerSubModule(
 
         fieldNumber++;
 
-        // Tries to get the user tag
         const user: User | undefined = util.client.users.cache.get(entry.user);
 
+        // Placeholder for an invalid tag
+
         let tag = `Failed to get user tag, ID: ${entry.user}`;
-        // The user was found, use their tag
         if (user) {
           tag = user.tag;
         }
@@ -659,7 +662,7 @@ duck.registerSubModule(
       }
 
       // Makes sure fields are added if the iteration didn't finish (the last 1-3 weren't added)
-      if (payloads.length % 4 !== 0) {
+      if (payloads.length <= 4 || payloads.length % 4 !== 0) {
         embed.setFields(fields);
         payloads.push({embeds: [embed.toJSON()]});
       }
@@ -683,7 +686,7 @@ duck.registerSubModule(
 
       // Gets the payloads for the pagination
       let fieldNumber = 0;
-      const payloads = [];
+      const payloads: BaseMessageOptions[] = [];
 
       // The description has to be set to something, the speed record seems like the best choice
       // Non-null assertion - people have killed ducks, there is a record
@@ -715,9 +718,9 @@ duck.registerSubModule(
 
         fieldNumber++;
 
-        // Tries to get the user tag
         const user: User | undefined = util.client.users.cache.get(entry.user);
 
+        // Placeholder for an invalid tag
         let tag = `Failed to get user tag, ID: ${entry.user}`;
         // The user was found, use their tag
         if (user) {
@@ -730,7 +733,7 @@ duck.registerSubModule(
       }
 
       // Makes sure fields are added if the iteration didn't finish (the last 1-3 weren't added)
-      if (payloads.length % 4 !== 0) {
+      if (payloads.length <= 4 || payloads.length % 4 !== 0) {
         embed.setFields(fields);
         payloads.push({embeds: [embed.toJSON()]});
       }
@@ -764,10 +767,7 @@ duck.registerSubModule(
         );
       }
 
-      const donorRecord = await getRecord(interaction.user.id);
-      const recipeeRecord = await getRecord(recipee.id);
-
-      // Makes sure the command can be executed
+      const donorRecord: DuckUser | null = await getRecord(interaction.user.id);
 
       if (!donorRecord) {
         return util.embed.errorEmbed(
@@ -775,14 +775,16 @@ duck.registerSubModule(
         );
       }
 
+      if (donorRecord.befriended === 0) {
+        return util.embed.errorEmbed('You have no ducks to donate!');
+      }
+
+      const recipeeRecord: DuckUser | null = await getRecord(recipee.id);
+
       if (!recipeeRecord) {
         return util.embed.errorEmbed(
           `<@!${recipee.id}> has not participated in the duck hunt yet!`
         );
-      }
-
-      if (donorRecord.befriended === 0) {
-        return util.embed.errorEmbed('You have no ducks to donate!');
       }
 
       await updateRecord({
@@ -799,7 +801,7 @@ duck.registerSubModule(
       // Fail chance
       if (Math.random() <= failRates.donate! / 100) {
         return util.embed.errorEmbed(
-          `Oops, the duck ran away before you could donate it. You have ${
+          `Oops, the duck flew away before you could donate it. You have ${
             donorRecord.befriended - 1
           } ducks left.`
         );
@@ -833,8 +835,6 @@ duck.registerSubModule(
     async (_, interaction) => {
       const userRecord = await getRecord(interaction.user.id);
 
-      // Makes sure the command can be executed
-
       if (!userRecord) {
         return util.embed.errorEmbed(
           'You have not participated in the duck hunt yet'
@@ -859,7 +859,7 @@ duck.registerSubModule(
         });
 
         return util.embed.errorEmbed(
-          `Oops, the duck ran away before you could hurt it. You have ${
+          `Oops, the duck flew away before you could hurt it. You have ${
             userRecord.befriended - 1
           } ducks left.`
         );
@@ -917,7 +917,12 @@ duck.registerSubModule(
           return util.embed.infoEmbed('The duck stats were NOT reset.');
 
         case util.ConfirmEmbedResponse.Confirmed:
-          await duckRecords.deleteOne({user: user.id});
+          await duckRecords.deleteOne({user: user.id}).catch(err => {
+            return util.embed.errorEmbed(
+              `Database update call failed with error ${(err as Error).name}`
+            );
+          });
+
           return util.embed.successEmbed(
             `Succesfully wiped the duck stats of <@!${user.id}>`
           );
