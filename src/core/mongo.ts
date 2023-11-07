@@ -20,12 +20,16 @@ export const mongo = new Dependency('MongoDB', async () => {
       `${mongoConfig.address}:27017`;
   }
 
-  if (!`${mongoConfig.bypassAuth}`) {
+  if (!mongoConfig.bypassAuth) {
     // https://www.mongodb.com/docs/manual/reference/connection-string/
     connectionString =
       `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
     `@${mongoConfig.address}:27017`;
-  } 
+  }
+
+  if (typeof mongoConfig.bypassAuth !== 'boolean') {
+    throw new Error("bypassAuth is not a boolean")
+  }
 
   //TODO: remove this
   console.log('connectionString: '+connectionString)
