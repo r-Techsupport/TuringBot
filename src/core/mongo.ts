@@ -13,8 +13,8 @@ import {Dependency} from './modules.js';
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.secrets.mongodb;
 
-  let localDB = `${mongoConfig.localDB}`
-  const test : boolean = localDB.toLowerCase() === 'true'
+  let bypassAuth = `${mongoConfig.bypassAuth}`
+  const test : boolean = bypassAuth.toLowerCase() === 'true'
 
   if (test) {
     // https://www.mongodb.com/docs/manual/reference/connection-string/
@@ -22,7 +22,6 @@ export const mongo = new Dependency('MongoDB', async () => {
       `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
     `@${mongoConfig.address}:27017`;
   } else {
-    // https://www.mongodb.com/docs/manual/reference/connection-string/
     const connectionString =
       `${mongoConfig.protocol}` +
       `${mongoConfig.address}:27017`;
@@ -30,7 +29,7 @@ export const mongo = new Dependency('MongoDB', async () => {
 
   //TODO: remove this
   console.log(connectionString)
-  console.log(`${mongoConfig.localDB}`)
+  console.log(`${mongoConfig.bypassAuth}`)
   console.log(test)
   
   // https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/connect/#std-label-node-connect-to-mongodb
