@@ -26,8 +26,6 @@ export const mongo = new Dependency('MongoDB', async () => {
       `@${mongoConfig.address}:27017`;
   }
 
-  console.log(connectionString)
-
   // https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/connect/#std-label-node-connect-to-mongodb
   const mongoClient = new MongoClient(connectionString, {
     serverApi: {
@@ -42,5 +40,5 @@ export const mongo = new Dependency('MongoDB', async () => {
     throw err;
   });
 
-  return mongoClient.db('turingbot');
+  return mongoClient.db(`${mongoConfig.dbName}`);
 });
