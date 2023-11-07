@@ -13,12 +13,11 @@ import {Dependency} from './modules.js';
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.secrets.mongodb;
 
-  let connectionString = "temp value"
-  if (mongoConfig.username === "" || mongoConfig.password === "") {
+  let connectionString = 'temp value';
+  if (mongoConfig.username === '' || mongoConfig.password === '') {
     // https://www.mongodb.com/docs/manual/reference/connection-string/
     connectionString =
-      `${mongoConfig.protocol}` +
-      `${mongoConfig.address}:27017`;
+      `${mongoConfig.protocol}` + `${mongoConfig.address}:27017`;
   } else {
     // https://www.mongodb.com/docs/manual/reference/connection-string/
     connectionString =
