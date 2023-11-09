@@ -12,10 +12,19 @@ import {Dependency} from './modules.js';
  */
 export const mongo = new Dependency('MongoDB', async () => {
   const mongoConfig = botConfig.secrets.mongodb;
-  // https://www.mongodb.com/docs/manual/reference/connection-string/
-  const connectionString =
-    `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
-    `@${mongoConfig.address}:27017`;
+
+  let connectionString: string | undefined;
+  // Allows for empty authentication fields without erroring
+  if (mongoConfig.username === '' || mongoConfig.password === '') {
+    // https://www.mongodb.com/docs/manual/reference/connection-string/
+    connectionString =
+      `${mongoConfig.protocol}` + `${mongoConfig.address}:27017`;
+  } else {
+    // https://www.mongodb.com/docs/manual/reference/connection-string/
+    connectionString =
+      `${mongoConfig.protocol}${mongoConfig.username}:${mongoConfig.password}` +
+      `@${mongoConfig.address}:27017`;
+  }
 
   // https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/connect/#std-label-node-connect-to-mongodb
   const mongoClient = new MongoClient(connectionString, {
@@ -31,5 +40,5 @@ export const mongo = new Dependency('MongoDB', async () => {
     throw err;
   });
 
-  return mongoClient.db('turingbot');
+  return mongoClient.db(`${mongoConfig.dbName}`);
 });

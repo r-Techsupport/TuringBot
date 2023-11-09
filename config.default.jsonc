@@ -1,10 +1,6 @@
 {
   // Specifically event logging
   "logging": {
-    // restrict this command to people with the `administrator` perm
-    "permissions": {
-      "requiredPerms": ["administrator"]
-    },
     /**
      * Different levels of verbose logging.
      *
@@ -37,6 +33,10 @@
   // permissions are explained in the production environment doc
   "modules": {
     "logging": {
+      // restrict this command to people with the `administrator` perm
+      "permissions": {
+        "requiredPerms": ["administrator"]
+      },
       "enabled": true,
       // each channel ID paired with a respecting logging channel, if it's not specified here
       // messages from that channel will silently not be logged,
@@ -76,11 +76,8 @@
       "roleIdOnApprove": ""
     },
     "google": {
-      "enabled": true,
-      "ApiKey": "",
-      "CseId": ""
+      "enabled": true
     },
-    // API key is shared with google
     "youtube": {
       "enabled": true
     },
@@ -108,6 +105,24 @@
     },
     "unwarn": {
       "enabled": true
+
+  },
+  "duck": {
+    "enabled": true,
+    "channels": [],
+    // Times are specified in seconds
+    "minimumSpawn": 30,
+    "maximumSpawn": 180,
+    "runAwayTime": 20,
+    // Timeout on miss
+    "cooldown": 5,
+    // Failure percentages
+    "failRates": {      
+      // Bef and bang
+      "interaction": 50,
+      "kill": 50,
+      "donate": 50
     }
+  }
   }
 }

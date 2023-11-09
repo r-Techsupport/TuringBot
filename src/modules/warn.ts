@@ -34,21 +34,6 @@ interface Warning {
 const WARNING_COLLECTION_NAME = 'warnings';
 
 /**
- * Formats the current date to YYYY-MM-DD HH:MM:SS
- * @param The date to format
- */
-function formatDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = (1 + date.getMonth()).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
-  const hour = date.getHours().toString().padStart(2, '0');
-  const minute = date.getMinutes().toString().padStart(2, '0');
-  const second = date.getSeconds().toString().padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-}
-
-/**
  * Function to get an array of all warns of a user by their id
  *
  * @param id The id of the user
@@ -89,7 +74,7 @@ export async function warnUser(
     user: member.id,
     author: author.id,
     reason: reason,
-    date: formatDate(new Date()),
+    date: util.formatDate(new Date()),
   });
 
   const existingWarns: Warning[] = await getWarns(member.id);
