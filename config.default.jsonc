@@ -36,6 +36,9 @@
   // if the `enabled` key is missing, the extension will be disabled by default, and a warning issued
   // permissions are explained in the production environment doc
   "modules": {
+    "joke": {
+      "enabled": true
+    },
     "logging": {
       "enabled": true,
       // each channel ID paired with a respecting logging channel, if it's not specified here

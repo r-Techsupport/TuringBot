@@ -2,9 +2,8 @@
  * @file
  * Modules:
  *  - {@link joke}
- *  - Submodules: TODO:
- *
- *  - {@link joke}
+ * Description:
+ *  Uses the joke api provided by arc to parse a response and send it as a discord embed
  */
 
 import * as util from '../core/util.js';
@@ -16,15 +15,35 @@ const joke = new util.RootModule(
   [], // options
 
   async (args, interaction) => {
-    const username = interaction.user.username;
-    util.replyToInteraction(interaction, {
-      embeds: [
-        util.embed.infoEmbed(
-          `I have a fish that can breakdance! Only for 20 seconds though, and only once. ${username}!`
-        ),
-      ],
-    });
+    fetchJoke()
+      .then(joke => {
+        util.replyToInteraction(interaction, {
+          embeds: [util.embed.infoEmbed(`${joke}`)],
+        });
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
   }
 );
+
+async function fetchJoke(): Promise<string> {
+    const apiUrl =
+    'https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=single';
+
+  try {
+    const response = await fetch(apiUrl);
+    1;
+    if (response.ok) {
+      const data = await response.json();
+      return data.joke;
+    } else {
+      throw new Error(`Failed to fetch joke.`);
+    }
+  } catch (error) {
+    console.error('Error fetching joke');
+    throw error;
+  }
+}
 
 export default joke;
