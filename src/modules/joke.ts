@@ -33,7 +33,6 @@ async function fetchJoke(): Promise<string> {
 
   try {
     const response = await fetch(apiUrl);
-    1;
     if (response.ok) {
       const data = await response.json();
       return data.joke;
