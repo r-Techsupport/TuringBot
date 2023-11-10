@@ -40,8 +40,11 @@ make prep
 
 # Filling out the config
 Locate `config.default.jsonc`, and create a copy of it named `config.jsonc` in the same folder. 
+Locate `secrets.default.jsonc` and create a copy of it named `secrets.jsonc` in the same folder. 
 
-Open the newly created config file, and copy the newly created auth token into the "authToken" key at the top of the json. Read through the rest of the config file, and edit as you see fit.
+Open `secrets.jsonc` and at the top of the page `L5` you should see "discordAuthToken" go ahead and enter your discord *bot* token here wrapped with quotation marks
+
+If you're receiving an error where its exclaiming `Value "" is not snowflake.` The easiest fix at the moment is to open `confic.jsonc` locate "directMessageLogging" enter *your* discord ID inside of the array then set "verboseLevel" to `0` Read through the rest of the config file, and edit as you see fit.
 
 ## Editing the code
 VSCode is the supported editor for this project. Other editors may be used, but VSCode is the recommended editor. The source code for the bot is stored in `src/`, with all module code stored in `src/modules`, and the heart of the bot and utilities used for development in `src/core`.
