@@ -105,24 +105,23 @@
     },
     "unwarn": {
       "enabled": true
-
-  },
-  "duck": {
-    "enabled": true,
-    "channels": [],
-    // Times are specified in seconds
-    "minimumSpawn": 30,
-    "maximumSpawn": 180,
-    "runAwayTime": 20,
-    // Timeout on miss
-    "cooldown": 5,
-    // Failure percentages
-    "failRates": {      
-      // Bef and bang
-      "interaction": 50,
-      "kill": 50,
-      "donate": 50
+    },
+    "duck": {
+      "enabled": true,
+      "channels": [],
+      // Times are specified in seconds
+      "minimumSpawn": 30,
+      "maximumSpawn": 180,
+      "runAwayTime": 20,
+      // Timeout on miss
+      "cooldown": 5,
+      // Failure percentages
+      "failRates": {
+        // Bef and bang
+        "interaction": 50,
+        "kill": 50,
+        "donate": 50
+      }
     }
-  }
   }
 }
