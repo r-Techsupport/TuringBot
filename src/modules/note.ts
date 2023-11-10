@@ -232,7 +232,7 @@ const whois = new util.RootModule(
     const targetId: string = args
       .find(arg => arg.name === 'user')!
       .value!.toString();
-    const member = await interaction.guild!.members.fetch(targetId).catch();
+    const member = await interaction.guild!.members.fetch(targetId);
 
     const embed: EmbedBuilder = new EmbedBuilder()
       .setColor(Colors.DarkBlue)
@@ -296,6 +296,8 @@ const whois = new util.RootModule(
 
     // Finally, list notes
     const record: UserRecord | null = await getRecord(member.user);
+    // Is left undefined if there aren't any notes, otherwise is used in the footer to list
+    // the amount of notes as well as any potential trimming that happened
     let footerText;
     let noteCount = 0;
 
