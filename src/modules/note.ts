@@ -234,7 +234,6 @@ const whois = new util.RootModule(
       .value!.toString();
     const member = await interaction.guild!.members.fetch(targetId).catch();
 
-    // Defines base embed attributes
     const embed: EmbedBuilder = new EmbedBuilder()
       .setColor(Colors.DarkBlue)
       .setTitle(`User info for \`${member.user.tag}\``)
