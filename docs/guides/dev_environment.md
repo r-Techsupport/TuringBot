@@ -42,7 +42,7 @@ make prep
 Locate `config.default.jsonc`, and create a copy of it named `config.jsonc` in the same folder. 
 Locate `secrets.default.jsonc` and create a copy of it named `secrets.jsonc` in the same folder. 
 
-Open `secrets.jsonc` and at the top of the page `L5` you should see "discordAuthToken" go ahead and enter your discord *bot* token here wrapped with quotation marks
+Open `secrets.jsonc` and fill the"discordAuthToken" key near the top of the page with your discord *bot* token 
 
 If you're receiving an error where its exclaiming `Value "" is not snowflake.` The easiest fix at the moment is to open `confic.jsonc` locate "directMessageLogging" enter *your* discord ID inside of the array then set "verboseLevel" to `0` Read through the rest of the config file, and edit as you see fit.
 
