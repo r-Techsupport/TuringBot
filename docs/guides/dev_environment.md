@@ -44,7 +44,8 @@ Locate `secrets.default.jsonc` and create a copy of it named `secrets.jsonc` in 
 
 Open `secrets.jsonc` and fill the"discordAuthToken" key near the top of the page with your discord *bot* token 
 
-If you're receiving an error where its exclaiming `Value "" is not snowflake.` The easiest fix at the moment is to open `confic.jsonc` locate "directMessageLogging" enter *your* discord ID inside of the array then set "verboseLevel" to `0` Read through the rest of the config file, and edit as you see fit.
+If you're receiving an error where the bot spams `Value "" is not snowflake.` The most probable cause is your discord ID not being set in `confic.jsonc`. To fix it, fill your discord ID in to use for DM logging. Otherwise set "verboseLevel" to `0` 
+Read through the rest of the config file, and edit as you see fit.
 
 ## Editing the code
 VSCode is the supported editor for this project. Other editors may be used, but VSCode is the recommended editor. The source code for the bot is stored in `src/`, with all module code stored in `src/modules`, and the heart of the bot and utilities used for development in `src/core`.
