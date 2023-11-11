@@ -8,6 +8,9 @@
 
 import * as util from '../core/util.js';
 
+const JOKE_API_URL =
+  'https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=single';
+
 const joke = new util.RootModule(
   'joke', // command name
   'Get a funny joke from the bot', // command description
@@ -17,31 +20,35 @@ const joke = new util.RootModule(
   async (args, interaction) => {
     fetchJoke()
       .then(joke => {
-        util.replyToInteraction(interaction, {
-          embeds: [util.embed.infoEmbed(`${joke}`)],
-        });
+        if ((joke == 'Failed to find joke')) {
+          util.replyToInteraction(interaction, {
+            embeds: [util.embed.errorEmbed(`${joke}`)],
+          });
+        } else {
+          util.replyToInteraction(interaction, {
+            embeds: [util.embed.infoEmbed(`${joke}`)],
+          });
+        }
       })
       .catch(error => {
-        console.error('Error:', error);
+        util.replyToInteraction(interaction, {
+          embeds: [util.embed.errorEmbed(`${joke}`)],
+        });
       });
   }
 );
 
 async function fetchJoke(): Promise<string> {
-    const apiUrl =
-    'https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=single';
-
   try {
-    const response = await fetch(apiUrl);
+    const response = await fetch(JOKE_API_URL);
     if (response.ok) {
       const data = await response.json();
       return data.joke;
     } else {
-      throw new Error(`Failed to fetch joke.`);
+      return 'Failed to find joke';
     }
   } catch (error) {
-    console.error('Error fetching joke');
-    throw error;
+    return 'Failed to find joke';
   }
 }
 
