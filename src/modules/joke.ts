@@ -4,6 +4,7 @@
  *  - {@link joke}
  * Description:
  *  Uses the joke api provided by arc to parse a response and send it as a discord embed
+ * @throws will throw an error if the api call fails
  */
 
 import * as util from '../core/util.js';
@@ -11,53 +12,43 @@ import {botConfig} from '../core/config.js';
 
 // Config manager for nsfw detection
 const jokeConfig = botConfig.modules.joke;
-let JOKE_API_URL = '';
-if (jokeConfig.nsfw) {
-  JOKE_API_URL =
-    'https://v2.jokeapi.dev/joke/Any?blacklistFlags=religious,political,racist,sexist,explicit&type=single';
-} else {
-  JOKE_API_URL =
-    'https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=single';
+let jokeApiUrl = 'https://v2.jokeapi.dev/joke/Any';
+const blacklistFlags = [
+  'religious',
+  'political',
+  'racist',
+  'sexist',
+  'explicit',
+];
+if (!jokeConfig.nsfw) {
+  blacklistFlags.push('nsfw');
 }
+jokeApiUrl += `?blacklistFlags=${blacklistFlags.join(',')}&type=single'}`;
 
 const joke = new util.RootModule(
-  'joke', // command name
-  'Get a funny joke from the bot', // command description
-  [], // dependencies
-  [], // options
+  'joke',
+  'Get a funny joke from the bot',
+  [],
+  [],
 
   async (args, interaction) => {
-    fetchJoke()
-      .then(joke => {
-        if (joke == 'Failed to find joke') {
-          util.replyToInteraction(interaction, {
-            embeds: [util.embed.errorEmbed(`${joke}`)],
-          });
-        } else {
-          util.replyToInteraction(interaction, {
-            embeds: [util.embed.infoEmbed(`${joke}`)],
-          });
-        }
-      })
-      .catch(() => {
-        util.replyToInteraction(interaction, {
-          embeds: [util.embed.errorEmbed(`${joke}`)],
-        });
-      });
+    util.replyToInteraction(interaction, {
+      embeds: [util.embed.infoEmbed(await fetchJoke())],
+    });
   }
 );
 
 async function fetchJoke(): Promise<string> {
   try {
-    const response = await fetch(JOKE_API_URL);
+    const response = await fetch(jokeApiUrl);
     if (response.ok) {
       const data = await response.json();
       return data.joke;
     } else {
-      return 'Failed to find joke';
+      throw new Error('Failed to fetch joke');
     }
   } catch (error) {
-    return 'Failed to find joke';
+    throw new Error('Failed to fetch joke');
   }
 }
 
