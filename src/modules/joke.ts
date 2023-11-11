@@ -7,9 +7,20 @@
  */
 
 import * as util from '../core/util.js';
+import {botConfig} from '../core/config.js';
 
-const JOKE_API_URL =
-  'https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=single';
+// Config manager for nsfw detection
+const jokeConfig = botConfig.modules.joke;
+let JOKE_API_URL = '';
+if (jokeConfig.nsfw) {
+  JOKE_API_URL =
+    'https://v2.jokeapi.dev/joke/Any?blacklistFlags=religious,political,racist,sexist,explicit&type=single';
+} else {
+  JOKE_API_URL =
+    'https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=single';
+}
+
+console.log(jokeConfig.nsfw);
 
 const joke = new util.RootModule(
   'joke', // command name
@@ -20,7 +31,7 @@ const joke = new util.RootModule(
   async (args, interaction) => {
     fetchJoke()
       .then(joke => {
-        if ((joke == 'Failed to find joke')) {
+        if (joke == 'Failed to find joke') {
           util.replyToInteraction(interaction, {
             embeds: [util.embed.errorEmbed(`${joke}`)],
           });

@@ -37,7 +37,9 @@
   // permissions are explained in the production environment doc
   "modules": {
     "joke": {
-      "enabled": true
+      "enabled": true,
+      // Boolean for if nsfw jokes should be displayed or not
+      "nsfw": false
     },
     "logging": {
       "enabled": true,
