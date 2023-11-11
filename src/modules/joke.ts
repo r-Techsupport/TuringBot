@@ -20,8 +20,6 @@ if (jokeConfig.nsfw) {
     'https://v2.jokeapi.dev/joke/Any?blacklistFlags=nsfw,religious,political,racist,sexist,explicit&type=single';
 }
 
-console.log(jokeConfig.nsfw);
-
 const joke = new util.RootModule(
   'joke', // command name
   'Get a funny joke from the bot', // command description
@@ -41,7 +39,7 @@ const joke = new util.RootModule(
           });
         }
       })
-      .catch(error => {
+      .catch(() => {
         util.replyToInteraction(interaction, {
           embeds: [util.embed.errorEmbed(`${joke}`)],
         });
