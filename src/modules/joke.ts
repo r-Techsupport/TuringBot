@@ -13,6 +13,7 @@ import {botConfig} from '../core/config.js';
 // Config manager for nsfw detection
 const jokeConfig = botConfig.modules.joke;
 let jokeApiUrl = 'https://v2.jokeapi.dev/joke/Any';
+
 const blacklistFlags = [
   'religious',
   'political',
@@ -20,10 +21,12 @@ const blacklistFlags = [
   'sexist',
   'explicit',
 ];
+
 if (!jokeConfig.nsfw) {
   blacklistFlags.push('nsfw');
 }
-jokeApiUrl += `?blacklistFlags=${blacklistFlags.join(',')}&type=single'}`;
+
+jokeApiUrl += `?blacklistFlags=${blacklistFlags.join(',')}&type=single`;
 
 const joke = new util.RootModule(
   'joke',
@@ -32,8 +35,9 @@ const joke = new util.RootModule(
   [],
 
   async (args, interaction) => {
+    const fetchedJoke = await fetchJoke();
     util.replyToInteraction(interaction, {
-      embeds: [util.embed.infoEmbed(await fetchJoke())],
+      embeds: [util.embed.infoEmbed(`${fetchedJoke}`)],
     });
   }
 );
@@ -41,6 +45,7 @@ const joke = new util.RootModule(
 async function fetchJoke(): Promise<string> {
   try {
     const response = await fetch(jokeApiUrl);
+
     if (response.ok) {
       const data = await response.json();
       return data.joke;
