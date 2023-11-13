@@ -35,24 +35,29 @@ const joke = new util.RootModule(
   [],
 
   async (args, interaction) => {
-    const fetchedJoke = await fetchJoke();
-    util.replyToInteraction(interaction, {
-      embeds: [util.embed.infoEmbed(`${fetchedJoke}`)],
+    let errorValue = false;
+    const fetchedJoke = await fetchJoke().catch(() => {
+      errorValue = true;
     });
+    if (errorValue) {
+      util.replyToInteraction(interaction, {
+        embeds: [util.embed.errorEmbed('Failed to fetch joke')],
+      });
+    } else {
+      util.replyToInteraction(interaction, {
+        embeds: [util.embed.infoEmbed(`${fetchedJoke}`)],
+      });
+    }
   }
 );
 
 async function fetchJoke(): Promise<string> {
-  try {
-    const response = await fetch(jokeApiUrl);
+  const response = await fetch(jokeApiUrl);
 
-    if (response.ok) {
-      const data = await response.json();
-      return data.joke;
-    } else {
-      throw new Error('Failed to fetch joke');
-    }
-  } catch (error) {
+  if (response.ok) {
+    const data = await response.json();
+    return data.joke;
+  } else {
     throw new Error('Failed to fetch joke');
   }
 }
