@@ -32,6 +32,11 @@
   // if the `enabled` key is missing, the extension will be disabled by default, and a warning issued
   // permissions are explained in the production environment doc
   "modules": {
+    "joke": {
+      "enabled": true,
+      // Boolean for if nsfw jokes should be displayed or not
+      "nsfw": false
+    },
     "logging": {
       // restrict this command to people with the `administrator` perm
       "permissions": {
